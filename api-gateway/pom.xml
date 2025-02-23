@@ -9,10 +9,9 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.3</version>  <!-- Cập nhật phiên bản mới nhất -->
+		<version>3.4.3</version>
 		<relativePath/>
 	</parent>
-
 
 	<groupId>vn.com.iuh.fit</groupId>
 	<artifactId>api-gateway</artifactId>
@@ -22,11 +21,13 @@
 
 	<properties>
 		<java.version>21</java.version>
-		<spring-cloud.version>2024.0.0</spring-cloud.version>  <!-- Tương thích với Boot 3.4.x -->
+		<spring-cloud.version>2024.0.0</spring-cloud.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 
 	<dependencies>
-		<!-- Spring Boot WebFlux (Yêu cầu cho Spring Cloud Gateway) -->
+		<!-- Spring Boot WebFlux (cho Gateway) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
@@ -38,7 +39,7 @@
 			<artifactId>spring-cloud-starter-gateway</artifactId>
 		</dependency>
 
-		<!-- Eureka Client for Service Discovery -->
+		<!-- Eureka Client -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
@@ -68,7 +69,7 @@
 			<artifactId>resilience4j-spring-boot3</artifactId>
 		</dependency>
 
-		<!-- Micrometer Tracing (Distributed Tracing) -->
+		<!-- Micrometer Tracing Bridge (Distributed Tracing) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
@@ -103,21 +104,24 @@
 
 	<build>
 		<plugins>
-			<!-- Maven Plugin cho Spring Boot -->
+			<!-- Spring Boot Maven Plugin -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-
-			<!-- Fix Encoding lỗi MalformedInputException -->
+			<!-- Maven Resources Plugin: đảm bảo sử dụng UTF-8 cho resources -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
 				<version>3.3.1</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
+					<nonFilteredFileExtensions>
+						<nonFilteredFileExtension>properties</nonFilteredFileExtension>
+					</nonFilteredFileExtensions>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
+
 </project>
