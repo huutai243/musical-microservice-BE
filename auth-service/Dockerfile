@@ -1,14 +1,10 @@
-# Use official OpenJDK image as a base image
-FROM openjdk:21-jdk-slim
-
-# Set the working directory in the container
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Copy the application JAR file (ensure this path is correct)
-COPY target/AuthService-0.0.1-SNAPSHOT.jar auth-service.jar
-
-# Expose the application port
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY --from=builder /app/target/AuthService-0.0.1-SNAPSHOT.jar auth-service.jar
 EXPOSE 8081
-
-# Run the application
-ENTRYPOINT ["java", "-jar", "auth-service.jar"]
+CMD ["java", "-jar", "auth-service.jar"]

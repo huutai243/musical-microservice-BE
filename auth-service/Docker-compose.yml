@@ -4,7 +4,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: mysql-auth-db
-    restart: unless-stopped  # Chỉ restart nếu service bị dừng do lỗi
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: auth_db
@@ -19,9 +19,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"  # Chỉ dùng tối đa 50% của 1 CPU core
-          memory: "512M"  # Giới hạn MySQL sử dụng 512MB RAM
-    command: --default-authentication-plugin=mysql_native_password --max_connections=20 --table_open_cache=50
+          cpus: "0.5"
+          memory: "512M"
+    command: --default-authentication-plugin=mysql_native_password --max_connections=100 --table_open_cache=100
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
     logging:
       driver: "json-file"
       options:
@@ -29,11 +34,16 @@ services:
         max-file: "3"
 
   auth-service:
-    build: .
+    build:
+      context: C:/musical-microservice/auth-service
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: target/auth-service.jar  # Định nghĩa JAR file sẽ copy vào Docker
     container_name: auth-service
-    restart: unless-stopped  # Chỉ restart nếu service bị dừng do lỗi
+    restart: unless-stopped
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: sa
@@ -46,8 +56,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.3"  # Auth Service chỉ dùng 30% 1 CPU core
-          memory: "256M"  # Giới hạn RAM tối đa là 256MB
+          cpus: "0.5"
+          memory: "512M"
     logging:
       driver: "json-file"
       options:
