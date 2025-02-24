@@ -65,6 +65,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
+     * Đăng xuất - Xóa Refresh Token
+     */
+    @Override
+    public void logout(String refreshToken) {
+        refreshTokenRepository.findByToken(refreshToken)
+                .ifPresent(refreshTokenRepository::delete);
+    }
+
+
+    /**
      * 🛠 **Xử lý đăng ký User mới**
      */
     @Override

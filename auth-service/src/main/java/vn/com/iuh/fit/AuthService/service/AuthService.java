@@ -9,4 +9,5 @@ public interface AuthService {
     void forgotPassword(String email);
     JwtResponse refreshToken(String refreshToken);
     String verifyEmail(String token);
+    void logout(String refreshToken);
 }

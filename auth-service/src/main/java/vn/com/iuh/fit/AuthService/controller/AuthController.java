@@ -7,6 +7,9 @@ import vn.com.iuh.fit.AuthService.dto.*;
 import vn.com.iuh.fit.AuthService.service.AuthService;
 import vn.com.iuh.fit.AuthService.config.JwtService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -18,9 +21,11 @@ public class AuthController {
      * Đăng ký tài khoản mới
      */
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok("Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.");
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.");
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -30,6 +35,16 @@ public class AuthController {
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    /**
+     * Đăng xuất và xóa refresh token
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok("Đăng xuất thành công.");
+    }
+
 
     /**
      * Refresh Access Token từ Refresh Token
