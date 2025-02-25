@@ -32,7 +32,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final SecureTokenRepository secureTokenRepository;
 
-    @Value("${app.base-url}")  // Lấy URL từ application.properties
+    @Value("${app.base-url}")
     private String baseUrl;
 
     /**

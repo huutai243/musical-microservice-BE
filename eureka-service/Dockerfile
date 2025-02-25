@@ -1,14 +1,25 @@
-# Giai đoạn build: sử dụng Maven với Java 21 để build ứng dụng
+# ========================== STAGE 1: BUILD ==========================
 FROM maven:3.9-eclipse-temurin-21 AS builder
-WORKDIR /app
-COPY . .
-RUN mvn clean package -DskipTests
-# RUN ls -la /app/target
 
-# Giai đoạn chạy: sử dụng image Eclipse Temurin với JDK 21
-FROM eclipse-temurin:21-jdk
 WORKDIR /app
-# Copy file JAR từ giai đoạn build, đổi tên thành eureka-server.jar
+
+# Sao chép toàn bộ project, bao gồm pom.xml, src/
+COPY . .
+
+# Build JAR, bỏ qua test cho nhanh
+RUN mvn clean package -DskipTests
+
+
+# ========================== STAGE 2: RUNTIME ==========================
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /app
+
+# Copy file JAR vừa build từ stage 1
 COPY --from=builder /app/target/EurokaServer-0.0.1-SNAPSHOT.jar eureka-server.jar
+
+# Eureka Server nghe cổng 8761
 EXPOSE 8761
-ENTRYPOINT ["java", "-jar", "eureka-server.jar"]
+
+# Lệnh khởi chạy Eureka khi container start
+CMD ["java", "-jar", "eureka-server.jar"]

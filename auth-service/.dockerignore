@@ -1,0 +1,17 @@
+# Bỏ folder target (chứa JAR/war sau khi build, không cần copy)
+target/
+
+# Bỏ folder .git nếu có
+.git/
+
+# Bỏ folder .idea (IntelliJ),  để tránh copy config IDE
+.idea/
+
+# Loại bỏ file log
+*.log
+
+# Loại bỏ file .iml (IntelliJ)
+*.iml
+
+.DS_Store
+Thumbs.db
