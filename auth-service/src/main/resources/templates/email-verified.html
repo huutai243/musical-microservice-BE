@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác thực email thành công</title>
+    <script>
+        // Tự động chuyển hướng sau 4 giây
+        setTimeout(function() {
+            window.location.href = "/login";
+        }, 4000);
+    </script>
+</head>
+<body>
+<!-- Hiển thị thông báo từ backend -->
+<h1 th:text="${message}">Xác thực email thành công!</h1>
+<p>Bạn sẽ được chuyển hướng về trang đăng nhập sau <span id="countdown">4</span> giây.</p>
+<script>
+    // Hiển thị đếm ngược
+    let countdown = 4;
+    setInterval(function() {
+        countdown--;
+        document.getElementById("countdown").textContent = countdown;
+    }, 1000);
+</script>
+
+<!-- Hiển thị thông báo lỗi nếu có -->
+<div th:if="${error != null}">
+    <p th:text="${error}">Lỗi xác thực email.</p>
+</div>
+</body>
+</html>

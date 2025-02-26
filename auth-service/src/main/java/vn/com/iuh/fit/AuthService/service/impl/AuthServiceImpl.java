@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -171,18 +173,22 @@ public class AuthServiceImpl implements AuthService {
      * 🛠 **Xác thực tài khoản qua email**
      */
     @Override
-    public String verifyEmail(String token) {
+    public Map<String, String> verifyEmail(String token) {
         SecureToken tokenEntity = secureTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token không hợp lệ."));
 
         if (tokenEntity.isExpired()) {
-            return "Token đã hết hạn.";
+            throw new RuntimeException("Token đã hết hạn.");
         }
 
         User user = tokenEntity.getUser();
         user.setEmailVerified(true);
         userRepository.save(user);
 
-        return "Xác thực email thành công.";
+        // Trả về thông tin để hiển thị trong template
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Xác thực email thành công.");
+        response.put("redirectUrl", "/login"); // URL chuyển hướng
+        return response;
     }
 }

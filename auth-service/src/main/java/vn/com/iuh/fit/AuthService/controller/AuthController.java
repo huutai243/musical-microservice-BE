@@ -9,6 +9,7 @@ import vn.com.iuh.fit.AuthService.config.JwtService;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.ui.Model;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -67,8 +68,15 @@ public class AuthController {
      * Xác thực email từ đường link được gửi
      */
     @GetMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
-        return ResponseEntity.ok(authService.verifyEmail(token));
+    public String verifyEmail(@RequestParam String token, Model model) {
+        try {
+            Map<String, String> response = authService.verifyEmail(token);
+            model.addAttribute("message", response.get("message")); // Truyền thông báo vào model
+            model.addAttribute("redirectUrl", response.get("redirectUrl")); // Truyền URL chuyển hướng vào model
+            return "email-verified"; // Trả về tên template HTML
+        } catch (RuntimeException e) {
+            model.addAttribute("error", e.getMessage()); // Truyền thông báo lỗi vào model
+            return "error-page"; // Trả về tên template HTML cho lỗi
+        }
     }
-
 }
