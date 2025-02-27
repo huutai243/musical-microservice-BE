@@ -19,8 +19,8 @@ public class JwtAuthFilter implements WebFilter {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        // ✅ Bỏ qua filter nếu request là /api/auth/**
-        if (path.startsWith("/api/auth/")) {
+        // Bỏ qua filter nếu request là /api/auth/** hoặc /api/products/**
+        if (path.startsWith("/api/auth/") || path.equals("/api/products") || path.startsWith("/api/products/")) {
             return chain.filter(exchange);
         }
 

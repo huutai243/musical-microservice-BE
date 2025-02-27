@@ -30,7 +30,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**", "/auth/**", "/actuator/**",
-                                "/swagger-ui/**", "/api-docs/**").permitAll()
+                                "/swagger-ui/**", "/api-docs/**", "/api/products", "/api/products/**", "/product-service/api/products/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtSpec -> jwtSpec.jwtDecoder(jwtDecoder())))

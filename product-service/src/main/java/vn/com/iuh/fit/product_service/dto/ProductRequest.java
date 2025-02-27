@@ -4,9 +4,9 @@ import lombok.Data;
 
 @Data
 public class ProductRequest {
-    private String name;
-    private String description;
-    private double price;
-    private int stockQuantity;
+    private String name;         // Tên sản phẩm
+    private String description;  // Mô tả sản phẩm
+    private double price;        // Giá sản phẩm
+    private int stockQuantity;   // Số lượng tồn kho
+    private Long categoryId;     // ID danh mục sản phẩm (bắt buộc khi thêm/sửa)
 }
-

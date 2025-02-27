@@ -1,10 +1,7 @@
 package vn.com.iuh.fit.product_service.service.impl;
 
 
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
+import io.minio.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,5 +50,20 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
         return "http://127.0.0.1:9001/" + bucketName + "/" + fileName;
     }
+
+    @Override
+    public void deleteFile(String fileUrl) throws Exception {
+        if (fileUrl == null || fileUrl.isEmpty()) return; // Nếu không có ảnh thì bỏ qua
+
+        String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1); // Lấy tên file từ URL
+
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fileName)
+                        .build()
+        );
+    }
+
 }
 
