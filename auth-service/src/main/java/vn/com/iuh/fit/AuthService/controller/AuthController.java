@@ -1,12 +1,15 @@
 package vn.com.iuh.fit.AuthService.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.com.iuh.fit.AuthService.dto.*;
 import vn.com.iuh.fit.AuthService.service.AuthService;
 import vn.com.iuh.fit.AuthService.config.JwtService;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,8 +70,16 @@ public class AuthController {
      * Xác thực email từ đường link được gửi
      */
     @GetMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
-        return ResponseEntity.ok(authService.verifyEmail(token));
-    }
+    public ResponseEntity<Map<String, Object>> verifyEmail(@RequestParam String token) {
+        boolean isVerified = authService.verifyEmail(token);
 
+        Map<String, Object> response = new HashMap<>();
+        if (isVerified) {
+            response.put("message", "Xác thực email thành công!");
+            return ResponseEntity.ok(response);
+        } else {
+            response.put("message", "Token không hợp lệ hoặc đã hết hạn.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
 }

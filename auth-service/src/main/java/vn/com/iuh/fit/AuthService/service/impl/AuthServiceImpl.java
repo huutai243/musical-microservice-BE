@@ -160,9 +160,7 @@ public class AuthServiceImpl implements AuthService {
         token.setUser(user);
         token.setExpiresAt(LocalDateTime.now().plusHours(24));
         secureTokenRepository.save(token);
-
-        // ✅ Dùng API Gateway thay vì gọi trực tiếp AuthService
-        String verificationLink = baseUrl + "/api/auth/verify-email?token=" + tokenValue;
+        String verificationLink = "http://localhost:3000/verify-email?token=" + tokenValue;
         String emailBody = "Vui lòng nhấn vào link sau để xác thực email: <a href=\"" + verificationLink + "\">Click here</a>";
         emailService.sendEmail(user.getEmail(), "Xác thực tài khoản", emailBody);
     }
@@ -171,18 +169,17 @@ public class AuthServiceImpl implements AuthService {
      * 🛠 **Xác thực tài khoản qua email**
      */
     @Override
-    public String verifyEmail(String token) {
+    public Boolean verifyEmail(String token) {
         SecureToken tokenEntity = secureTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token không hợp lệ."));
 
         if (tokenEntity.isExpired()) {
-            return "Token đã hết hạn.";
+            return false; // Token hết hạn
         }
-
         User user = tokenEntity.getUser();
         user.setEmailVerified(true);
         userRepository.save(user);
-
-        return "Xác thực email thành công.";
+        return true;
     }
+
 }
