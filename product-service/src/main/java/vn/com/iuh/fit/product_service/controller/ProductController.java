@@ -1,5 +1,6 @@
 package vn.com.iuh.fit.product_service.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,14 +39,17 @@ public class ProductController {
 
     /**
      * API thêm mới sản phẩm cùng với ảnh
-     * @param productRequest - Thông tin sản phẩm
      * @param imageFile - Ảnh sản phẩm
      * @return ProductResponse
      */
     @PostMapping("/add")
     public ResponseEntity<ProductResponse> addProductWithImage(
-            @RequestPart("product") ProductRequest productRequest,
+            @RequestPart("product") String productJson,
             @RequestPart("image") MultipartFile imageFile) throws Exception {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
+
         return ResponseEntity.ok(productService.addProductWithImage(productRequest, imageFile));
     }
 
