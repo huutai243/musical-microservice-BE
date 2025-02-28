@@ -62,4 +62,3 @@ public class SecurityConfig {
         return NimbusReactiveJwtDecoder.withSecretKey(secretKeySpec).build();
     }
 }
-

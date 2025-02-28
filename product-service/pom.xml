@@ -104,23 +104,23 @@
 			<version>2.4.0</version>
 		</dependency>
 
-		<!--  Spring Security -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
+<!--		&lt;!&ndash;  Spring Security &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-security</artifactId>-->
+<!--		</dependency>-->
 
-		<!--  OAuth2 Resource Server (Xác thực JWT) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-		</dependency>
+<!--		&lt;!&ndash;  OAuth2 Resource Server (Xác thực JWT) &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>-->
+<!--		</dependency>-->
 
-		<!--  Spring Security Configuration (Để dùng @PreAuthorize) -->
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-config</artifactId>
-		</dependency>
+<!--		&lt;!&ndash;  Spring Security Configuration (Để dùng @PreAuthorize) &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.security</groupId>-->
+<!--			<artifactId>spring-security-config</artifactId>-->
+<!--		</dependency>-->
 
 
 		<!--  Spring Boot Test -->

@@ -7,13 +7,12 @@ import vn.com.iuh.fit.product_service.dto.ProductRequest;
 import vn.com.iuh.fit.product_service.dto.ProductResponse;
 import vn.com.iuh.fit.product_service.entity.Product;
 import vn.com.iuh.fit.product_service.entity.Category;
-import vn.com.iuh.fit.product_service.repository.ProductRepository;
 import vn.com.iuh.fit.product_service.repository.CategoryRepository;
+import vn.com.iuh.fit.product_service.repository.ProductRepository;
 import vn.com.iuh.fit.product_service.service.FileStorageService;
 import vn.com.iuh.fit.product_service.service.ProductService;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -99,7 +98,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.deleteById(id);
     }
 
-    // 2️⃣ LỌC SẢN PHẨM
+    // 2 LỌC SẢN PHẨM
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
         return productRepository.findByCategoryId(categoryId)
