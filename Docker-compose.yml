@@ -335,7 +335,7 @@ services:
     volumes:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - microservice-net
 
