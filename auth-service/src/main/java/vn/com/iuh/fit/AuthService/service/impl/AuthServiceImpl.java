@@ -54,15 +54,27 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
-        // Lưu Refresh Token vào DB
-        RefreshToken savedToken = new RefreshToken();
-        savedToken.setToken(refreshToken);
-        savedToken.setUser(user);
-        savedToken.setExpiryDate(Instant.now().plusSeconds(7 * 24 * 60 * 60));
-        refreshTokenRepository.save(savedToken);
+        // Kiểm tra xem User đã có Refresh Token chưa
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
+
+        if (existingToken.isPresent()) {
+            // Cập nhật Refresh Token mới & thời gian hết hạn
+            RefreshToken token = existingToken.get();
+            token.setToken(refreshToken);
+            token.setExpiryDate(Instant.now().plusSeconds(7 * 24 * 60 * 60)); // 7 ngày
+            refreshTokenRepository.save(token);
+        } else {
+            // Tạo mới nếu chưa có
+            RefreshToken newToken = new RefreshToken();
+            newToken.setToken(refreshToken);
+            newToken.setUser(user);
+            newToken.setExpiryDate(Instant.now().plusSeconds(7 * 24 * 60 * 60));
+            refreshTokenRepository.save(newToken);
+        }
 
         return new JwtResponse(accessToken, refreshToken);
     }
+
 
     /**
      * Đăng xuất - Xóa Refresh Token
@@ -140,15 +152,26 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public JwtResponse refreshToken(String refreshToken) {
         Optional<RefreshToken> tokenOpt = refreshTokenRepository.findByToken(refreshToken);
+
         if (tokenOpt.isEmpty() || tokenOpt.get().isExpired()) {
             throw new RuntimeException("Refresh token không hợp lệ hoặc đã hết hạn.");
         }
 
-        User user = tokenOpt.get().getUser();
+        RefreshToken token = tokenOpt.get();
+        User user = token.getUser();
+
+        // Cập nhật Refresh Token với token mới
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+        token.setToken(newRefreshToken);
+        token.setExpiryDate(Instant.now().plusSeconds(7 * 24 * 60 * 60)); // 7 ngày
+        refreshTokenRepository.save(token);
+
+        // Tạo Access Token mới
         String newAccessToken = jwtService.generateAccessToken(user);
 
-        return new JwtResponse(newAccessToken, refreshToken);
+        return new JwtResponse(newAccessToken, newRefreshToken);
     }
+
 
     /**
      * 🛠 **Gửi email xác thực tài khoản**

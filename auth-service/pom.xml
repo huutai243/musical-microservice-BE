@@ -22,7 +22,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
-		<lombok.version>1.18.36</lombok.version> <!-- ✅ Thêm phiên bản Lombok -->
+		<lombok.version>1.18.36</lombok.version> <!--  Thêm phiên bản Lombok -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
@@ -132,7 +132,7 @@
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
 
-		<!-- ✅ Lombok (Giảm code boilerplate) -->
+		<!--  Lombok (Giảm code boilerplate) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -182,7 +182,7 @@
 
 	<build>
 		<plugins>
-			<!-- ✅ Cấu hình Annotation Processor để Lombok hoạt động -->
+			<!--  Cấu hình Annotation Processor để Lombok hoạt động -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -201,7 +201,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- ✅ Đảm bảo Lombok không bị đóng gói vào JAR -->
+			<!--  Đảm bảo Lombok không bị đóng gói vào JAR -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -215,7 +215,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- ✅ Fix lỗi encoding khi copy resources -->
+			<!--  Fix lỗi encoding khi copy resources -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
