@@ -107,14 +107,14 @@ public class JwtService {
                 .subject(user.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(secretKey) // ✅ SỬA Ở ĐÂY
+                .signWith(secretKey)
                 .compact();
     }
 
     /**
      * Trích xuất toàn bộ Claims từ Token
      */
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return jwtParser.parseSignedClaims(token).getPayload();
     }
 }

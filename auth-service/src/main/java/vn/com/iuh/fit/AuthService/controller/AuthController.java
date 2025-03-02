@@ -1,5 +1,6 @@
 package vn.com.iuh.fit.AuthService.controller;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -81,5 +82,20 @@ public class AuthController {
             response.put("message", "Token không hợp lệ hoặc đã hết hạn.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
+    }
+    /**
+     * Test giải mã JWT để lấy claims
+     */
+    @GetMapping("/decode-token")
+    public ResponseEntity<Map<String, Object>> decodeToken(@RequestHeader("Authorization") String token) {
+        // Loại bỏ "Bearer " khỏi token nếu có
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        // Giải mã JWT để lấy toàn bộ claims
+        Claims claims = jwtService.extractAllClaims(token);
+
+        return ResponseEntity.ok(claims);
     }
 }

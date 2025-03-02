@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "api-gateway"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["api-gateway:9000"]
+
+  - job_name: "eureka-service"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["eureka-service:8761"]
