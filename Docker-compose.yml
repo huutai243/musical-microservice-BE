@@ -178,8 +178,6 @@
 #  mysql_data:
 #  minio_data:
 
-version: "3.8"
-
 services:
   # 1. Eureka Service (Service Discovery)
   eureka-service:

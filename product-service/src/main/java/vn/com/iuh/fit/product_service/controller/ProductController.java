@@ -45,7 +45,8 @@ public class ProductController {
      * @return ProductResponse
      */
     @PostMapping("/add")
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")  //test role user- đúng buniess là role admin
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductResponse> addProductWithImages(
             @RequestPart("product") String productJson,
             @RequestParam("images") List<MultipartFile> imageFiles) throws Exception {
@@ -63,6 +64,7 @@ public class ProductController {
      * @return ProductResponse
      */
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductResponse> updateProductWithImages(
             @PathVariable Long id,
             @RequestPart("product") String productJson,
@@ -80,6 +82,7 @@ public class ProductController {
      * @return ResponseEntity<Void>
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) throws Exception {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
