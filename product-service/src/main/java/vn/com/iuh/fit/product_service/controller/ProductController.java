@@ -23,7 +23,7 @@ public class ProductController {
      * API lấy danh sách tất cả sản phẩm
      * @return List<ProductResponse>
      */
-    @GetMapping
+    @GetMapping("/get-all")
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
@@ -44,7 +44,7 @@ public class ProductController {
      * @return ProductResponse
      */
     @PostMapping("/add")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ProductResponse> addProductWithImage(
             @RequestPart("product") String productJson,
             @RequestPart("image") MultipartFile imageFile) throws Exception {
