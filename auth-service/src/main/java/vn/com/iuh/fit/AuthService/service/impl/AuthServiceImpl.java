@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import vn.com.iuh.fit.AuthService.client.UserServiceClient;
 import vn.com.iuh.fit.AuthService.config.JwtService;
 import vn.com.iuh.fit.AuthService.dto.*;
 import vn.com.iuh.fit.AuthService.entity.*;
@@ -31,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailService emailService;
     private final SecureTokenRepository secureTokenRepository;
+    private final UserServiceClient userServiceClient;
 
     @Value("${app.base-url}")
     private String baseUrl;
@@ -116,6 +118,9 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         userRepository.save(user);
+        // Gửi thông tin sang user-service để lưu vào user_db
+        UserRequest userRequest = new UserRequest(user.getId(), user.getUsername(), user.getEmail());
+        userServiceClient.createUser(userRequest);
 
         // Gửi email xác thực
         sendVerificationEmail(user);

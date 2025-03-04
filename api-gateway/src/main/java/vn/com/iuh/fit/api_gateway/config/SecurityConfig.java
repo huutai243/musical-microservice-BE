@@ -24,8 +24,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
                         // Các API được phép truy cập mà không cần JWT
-                        .pathMatchers("/api/auth/**", "/api/auth/refresh-token",
-                                "/swagger-ui/**", "/api-docs/**", "/api/products/**").permitAll()
+                        .pathMatchers("/api/auth/**",
+                                "/api/auth/refresh-token",
+                                "/swagger-ui/**",
+                                "/api-docs/**",
+                                "/api/products/**",
+                                "/api/users/**"
+                        ).permitAll()
                         // Các API khác yêu cầu xác thực JWT
                         .anyExchange().authenticated()
                 )

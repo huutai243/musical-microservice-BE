@@ -1,9 +1,9 @@
-package vn.com.iuh.fit.product_service.config;
+package vn.com.iuh.fit.user_service.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.FilterChain;
 import io.jsonwebtoken.Jwts;
+import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -47,18 +46,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
         Claims claims = extractAllClaims(token);
 
-        String username = claims.getSubject();
+        Long userId = claims.get("id", Long.class); //  Trích xuất ID từ JWT
+        String username = claims.getSubject(); // Lấy username (nếu cần)
         List<String> roles = claims.get("roles", List.class);
 
+        // Chuyển đổi roles thành danh sách quyền
         List<SimpleGrantedAuthority> authorities = roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .collect(Collectors.toList());
 
+        // Tạo AuthenticationToken dựa trên ID thay vì username
         UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(new User(username, "", authorities), null, authorities);
+                new UsernamePasswordAuthenticationToken(userId, null, authorities);
 
         authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
+        // Đặt thông tin xác thực vào SecurityContext
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         chain.doFilter(request, response);
     }
@@ -71,4 +74,3 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .getBody();
     }
 }
-

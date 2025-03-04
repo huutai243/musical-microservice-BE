@@ -99,6 +99,7 @@ public class JwtService {
      */
     private String generateToken(User user, long expirationTime) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("id", user.getId());  //them id vào claim
         claims.put("username", user.getUsername());
         claims.put("roles", user.getRoles().stream().map(role -> role.getName()).collect(Collectors.toList()));
 
