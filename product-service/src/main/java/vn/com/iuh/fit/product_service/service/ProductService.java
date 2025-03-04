@@ -11,8 +11,8 @@ public interface ProductService {
     // 1 CRUD CƠ BẢN
     List<ProductResponse> getAllProducts(); // Lấy tất cả sản phẩm
     ProductResponse getProductById(Long id); // Lấy chi tiết sản phẩm kèm ảnh
-    ProductResponse addProductWithImage(ProductRequest productRequest, MultipartFile imageFile) throws Exception; // Thêm sản phẩm + ảnh
-    ProductResponse updateProductWithImage(Long id, ProductRequest productRequest, MultipartFile imageFile) throws Exception; // Cập nhật sản phẩm + ảnh mới
+    ProductResponse addProductWithImages(ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception; // Thêm sản phẩm + nhiều ảnh
+    ProductResponse updateProductWithImages(Long id, ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception; // Cập nhật sản phẩm + nhiều ảnh mới
     void deleteProduct(Long id) throws Exception; // Xóa sản phẩm + ảnh
 
     // 2 LỌC SẢN PHẨM
@@ -24,8 +24,4 @@ public interface ProductService {
     List<ProductResponse> getPagedProducts(int page, int size); // Phân trang sản phẩm
     List<ProductResponse> getLatestProducts(int limit); // Lấy sản phẩm mới nhất
     List<ProductResponse> getBestSellingProducts(int limit); // Lấy sản phẩm bán chạy
-
-    // 4 UPLOAD & XÓA ẢNH SẢN PHẨM
-    String uploadFile(MultipartFile file) throws Exception; // Upload ảnh lên MinIO
-    void deleteFile(String imageUrl) throws Exception; // Xóa ảnh khỏi MinIO
 }

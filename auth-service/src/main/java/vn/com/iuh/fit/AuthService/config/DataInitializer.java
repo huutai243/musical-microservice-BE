@@ -24,7 +24,7 @@ public class DataInitializer {
                 Role role = new Role();
                 role.setName(roleName);
                 roleRepository.save(role);
-                System.out.println("✅ Tạo vai trò mặc định: " + roleName);
+                System.out.println(" Tạo vai trò mặc định: " + roleName);
             }
         }
     }

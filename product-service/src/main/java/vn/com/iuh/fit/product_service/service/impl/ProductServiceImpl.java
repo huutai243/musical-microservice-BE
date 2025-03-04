@@ -7,11 +7,14 @@ import vn.com.iuh.fit.product_service.dto.ProductRequest;
 import vn.com.iuh.fit.product_service.dto.ProductResponse;
 import vn.com.iuh.fit.product_service.entity.Product;
 import vn.com.iuh.fit.product_service.entity.Category;
+import vn.com.iuh.fit.product_service.entity.ProductImage;
 import vn.com.iuh.fit.product_service.repository.CategoryRepository;
 import vn.com.iuh.fit.product_service.repository.ProductRepository;
+import vn.com.iuh.fit.product_service.repository.ProductImageRepository;
 import vn.com.iuh.fit.product_service.service.FileStorageService;
 import vn.com.iuh.fit.product_service.service.ProductService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,7 +30,10 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private FileStorageService fileStorageService;
 
-    // 1️⃣ CRUD CƠ BẢN
+    @Autowired
+    private ProductImageRepository productImageRepository;
+
+    // 1️⃣ LẤY DANH SÁCH SẢN PHẨM
     @Override
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll()
@@ -43,62 +49,87 @@ public class ProductServiceImpl implements ProductService {
         return convertToResponse(product);
     }
 
+    // 2️⃣ THÊM SẢN PHẨM (HỖ TRỢ NHIỀU ẢNH)
     @Override
-    public ProductResponse addProductWithImage(ProductRequest productRequest, MultipartFile imageFile) throws Exception {
+    public ProductResponse addProductWithImages(ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception {
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
-        // Upload ảnh lên MinIO
-        String imageUrl = fileStorageService.uploadFile(imageFile);
+        Product product = Product.builder()
+                .name(productRequest.getName())
+                .description(productRequest.getDescription())
+                .price(productRequest.getPrice())
+                .stockQuantity(productRequest.getStockQuantity())
+                .category(category)
+                .build();
 
-        Product product = new Product();
-        product.setName(productRequest.getName());
-        product.setDescription(productRequest.getDescription());
-        product.setPrice(productRequest.getPrice());
-        product.setStockQuantity(productRequest.getStockQuantity());
-        product.setCategory(category);
-        product.setImageUrl(imageUrl); // Lưu URL ảnh vào DB
+        product = productRepository.save(product);
 
-        return convertToResponse(productRepository.save(product));
+        // Upload ảnh lên MinIO và lưu vào `ProductImage`
+        List<String> imageUrls = fileStorageService.uploadFiles(imageFiles);
+        List<ProductImage> imageEntities = new ArrayList<>();
+
+        for (String imageUrl : imageUrls) {
+            ProductImage productImage = new ProductImage(null, imageUrl, product);
+            imageEntities.add(productImageRepository.save(productImage));
+        }
+
+        // Cập nhật lại danh sách images cho product
+        product.setImages(imageEntities);
+
+        return convertToResponse(product);
     }
 
+    // 3️⃣ CẬP NHẬT SẢN PHẨM (THAY ẢNH MỚI)
     @Override
-    public ProductResponse updateProductWithImage(Long id, ProductRequest productRequest, MultipartFile imageFile) throws Exception {
+    public ProductResponse updateProductWithImages(Long id, ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
-        // Nếu có ảnh mới, xóa ảnh cũ và upload ảnh mới
-        if (imageFile != null && !imageFile.isEmpty()) {
-            fileStorageService.deleteFile(product.getImageUrl()); // Xóa ảnh cũ
-            String newImageUrl = fileStorageService.uploadFile(imageFile);
-            product.setImageUrl(newImageUrl);
-        }
-
         product.setName(productRequest.getName());
         product.setDescription(productRequest.getDescription());
         product.setPrice(productRequest.getPrice());
         product.setStockQuantity(productRequest.getStockQuantity());
         product.setCategory(category);
 
-        return convertToResponse(productRepository.save(product));
+        product = productRepository.save(product);
+
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            // Xóa ảnh cũ khỏi MinIO
+            List<ProductImage> existingImages = productImageRepository.findByProductId(id);
+            List<String> oldUrls = existingImages.stream().map(ProductImage::getImageUrl).toList();
+
+            fileStorageService.deleteFiles(oldUrls);
+            productImageRepository.deleteAll(existingImages);
+
+            // Upload ảnh mới
+            List<String> newImageUrls = fileStorageService.uploadFiles(imageFiles);
+            for (String imageUrl : newImageUrls) {
+                productImageRepository.save(new ProductImage(null, imageUrl, product));
+            }
+        }
+
+        return convertToResponse(product);
     }
 
+    // 4️⃣ XOÁ SẢN PHẨM (XOÁ CẢ ẢNH)
     @Override
     public void deleteProduct(Long id) throws Exception {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Xóa ảnh khỏi MinIO
-        fileStorageService.deleteFile(product.getImageUrl());
+        List<ProductImage> images = productImageRepository.findByProductId(id);
+        List<String> imageUrls = images.stream().map(ProductImage::getImageUrl).toList();
 
-        // Xóa sản phẩm khỏi database
+        fileStorageService.deleteFiles(imageUrls);
+        productImageRepository.deleteAll(images);
         productRepository.deleteById(id);
     }
 
-    // 2 LỌC SẢN PHẨM
+    // 5️⃣ LỌC SẢN PHẨM
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
         return productRepository.findByCategoryId(categoryId)
@@ -123,7 +154,7 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
-    // 3️⃣ PHÂN TRANG & SẮP XẾP
+    // 6️⃣ PHÂN TRANG & SẮP XẾP
     @Override
     public List<ProductResponse> getPagedProducts(int page, int size) {
         return productRepository.findAll()
@@ -152,27 +183,23 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
-    // 4️⃣ UPLOAD & XÓA ẢNH SẢN PHẨM
-    @Override
-    public String uploadFile(MultipartFile file) throws Exception {
-        return fileStorageService.uploadFile(file);
+    // 7️⃣ CHUYỂN ĐỔI ENTITY → DTO
+    public ProductResponse convertToResponse(Product product) {
+        List<String> imageUrls = product.getImages() != null ?
+                product.getImages().stream()
+                        .map(ProductImage::getImageUrl)
+                        .collect(Collectors.toList())
+                : new ArrayList<>(); // Tránh lỗi NullPointerException
+
+        return ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stockQuantity(product.getStockQuantity())
+                .categoryName(product.getCategory().getName())
+                .imageUrls(imageUrls)
+                .build();
     }
 
-    @Override
-    public void deleteFile(String imageUrl) throws Exception {
-        fileStorageService.deleteFile(imageUrl);
-    }
-
-    // CHUYỂN ĐỔI ENTITY → DTO
-    private ProductResponse convertToResponse(Product product) {
-        return new ProductResponse(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getStockQuantity(),
-                product.getImageUrl(),
-                product.getCategory() != null ? product.getCategory().getName() : null
-        );
-    }
 }

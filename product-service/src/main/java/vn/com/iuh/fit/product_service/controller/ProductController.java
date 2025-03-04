@@ -39,41 +39,45 @@ public class ProductController {
     }
 
     /**
-     * API thêm mới sản phẩm cùng với ảnh
-     * @param imageFile - Ảnh sản phẩm
+     * API thêm mới sản phẩm cùng với nhiều ảnh
+     * @param productJson - JSON chứa thông tin sản phẩm
+     * @param imageFiles - Danh sách ảnh sản phẩm
      * @return ProductResponse
      */
     @PostMapping("/add")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ProductResponse> addProductWithImage(
+    public ResponseEntity<ProductResponse> addProductWithImages(
             @RequestPart("product") String productJson,
-            @RequestPart("image") MultipartFile imageFile) throws Exception {
-
+            @RequestParam("images") List<MultipartFile> imageFiles) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
 
-        return ResponseEntity.ok(productService.addProductWithImage(productRequest, imageFile));
+        return ResponseEntity.ok(productService.addProductWithImages(productRequest, imageFiles));
     }
 
     /**
      * API cập nhật sản phẩm kèm với ảnh mới (nếu có)
      * @param id - ID sản phẩm
-     * @param productRequest - Thông tin sản phẩm
-     * @param imageFile - Ảnh sản phẩm mới
+     * @param productJson - JSON chứa thông tin sản phẩm
+     * @param imageFiles - Danh sách ảnh sản phẩm mới
      * @return ProductResponse
      */
     @PutMapping("/update/{id}")
-    public ResponseEntity<ProductResponse> updateProductWithImage(
+    public ResponseEntity<ProductResponse> updateProductWithImages(
             @PathVariable Long id,
-            @RequestPart("product") ProductRequest productRequest,
-            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws Exception {
-        return ResponseEntity.ok(productService.updateProductWithImage(id, productRequest, imageFile));
+            @RequestPart("product") String productJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> imageFiles) throws Exception {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
+
+        return ResponseEntity.ok(productService.updateProductWithImages(id, productRequest, imageFiles));
     }
 
     /**
      * API xóa sản phẩm kèm ảnh
      * @param id - ID sản phẩm
-     * @return ResponseEntity
+     * @return ResponseEntity<Void>
      */
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) throws Exception {
@@ -98,7 +102,9 @@ public class ProductController {
      * @return List<ProductResponse>
      */
     @GetMapping("/filter")
-    public ResponseEntity<List<ProductResponse>> filterProductsByPrice(@RequestParam double minPrice, @RequestParam double maxPrice) {
+    public ResponseEntity<List<ProductResponse>> filterProductsByPrice(
+            @RequestParam double minPrice,
+            @RequestParam double maxPrice) {
         return ResponseEntity.ok(productService.filterProductsByPrice(minPrice, maxPrice));
     }
 
