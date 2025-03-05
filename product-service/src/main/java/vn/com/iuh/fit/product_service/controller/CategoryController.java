@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.com.iuh.fit.product_service.dto.CategoryDTO;
 import vn.com.iuh.fit.product_service.entity.Category;
 import vn.com.iuh.fit.product_service.service.CategoryService;
 
@@ -16,15 +17,15 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    //  Lấy danh sách tất cả category
+    // 1. Lấy danh sách tất cả category
     @GetMapping("/get-all")
-    public List<Category> getAllCategories() {
-        return categoryService.getAllCategories();
+    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
+        return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
-    //  Lấy category theo ID
+    // 2. Lấy category theo ID
     @GetMapping("/{id}")
-    public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
+    public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getCategoryById(id));
     }
 
@@ -42,7 +43,7 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.updateCategory(id, updatedCategory));
     }
 
-    //  Xóa category (nếu không có sản phẩm liên quan)
+    // 5. Xóa category (nếu không có sản phẩm liên quan)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteCategory(@PathVariable Long id) {
