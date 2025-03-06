@@ -33,7 +33,7 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductImageRepository productImageRepository;
 
-    // 1️⃣ LẤY DANH SÁCH SẢN PHẨM
+    // 1 LẤY DANH SÁCH SẢN PHẨM
     @Override
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll()
@@ -49,7 +49,7 @@ public class ProductServiceImpl implements ProductService {
         return convertToResponse(product);
     }
 
-    // 2️⃣ THÊM SẢN PHẨM (HỖ TRỢ NHIỀU ẢNH)
+    // 2 THÊM SẢN PHẨM (HỖ TRỢ NHIỀU ẢNH)
     @Override
     public ProductResponse addProductWithImages(ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception {
         Category category = categoryRepository.findById(productRequest.getCategoryId())
@@ -59,7 +59,6 @@ public class ProductServiceImpl implements ProductService {
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
                 .price(productRequest.getPrice())
-                .stockQuantity(productRequest.getStockQuantity())
                 .category(category)
                 .build();
 
@@ -80,7 +79,7 @@ public class ProductServiceImpl implements ProductService {
         return convertToResponse(product);
     }
 
-    // 3️⃣ CẬP NHẬT SẢN PHẨM (THAY ẢNH MỚI)
+    // 3 CẬP NHẬT SẢN PHẨM (THAY ẢNH MỚI)
     @Override
     public ProductResponse updateProductWithImages(Long id, ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception {
         Product product = productRepository.findById(id)
@@ -92,7 +91,6 @@ public class ProductServiceImpl implements ProductService {
         product.setName(productRequest.getName());
         product.setDescription(productRequest.getDescription());
         product.setPrice(productRequest.getPrice());
-        product.setStockQuantity(productRequest.getStockQuantity());
         product.setCategory(category);
 
         product = productRepository.save(product);
@@ -115,7 +113,7 @@ public class ProductServiceImpl implements ProductService {
         return convertToResponse(product);
     }
 
-    // 4️⃣ XOÁ SẢN PHẨM (XOÁ CẢ ẢNH)
+    // 4 XOÁ SẢN PHẨM (XOÁ CẢ ẢNH)
     @Override
     public void deleteProduct(Long id) throws Exception {
         Product product = productRepository.findById(id)
@@ -129,7 +127,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.deleteById(id);
     }
 
-    // 5️⃣ LỌC SẢN PHẨM
+    // 5 LỌC SẢN PHẨM
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
         return productRepository.findByCategoryId(categoryId)
@@ -154,7 +152,7 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
-    // 6️⃣ PHÂN TRANG & SẮP XẾP
+    // 6 PHÂN TRANG & SẮP XẾP
     @Override
     public List<ProductResponse> getPagedProducts(int page, int size) {
         return productRepository.findAll()
@@ -176,14 +174,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> getBestSellingProducts(int limit) {
-        return productRepository.findTopByOrderByStockQuantityDesc()
-                .stream()
-                .limit(limit)
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        throw new UnsupportedOperationException("Best selling products should be fetched from Inventory-Service.");
     }
 
-    // 7️⃣ CHUYỂN ĐỔI ENTITY → DTO
+    // 7 CHUYỂN ĐỔI ENTITY → DTO
     public ProductResponse convertToResponse(Product product) {
         List<String> imageUrls = product.getImages() != null ?
                 product.getImages().stream()
@@ -196,7 +190,6 @@ public class ProductServiceImpl implements ProductService {
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-                .stockQuantity(product.getStockQuantity())
                 .categoryName(product.getCategory().getName())
                 .imageUrls(imageUrls)
                 .build();

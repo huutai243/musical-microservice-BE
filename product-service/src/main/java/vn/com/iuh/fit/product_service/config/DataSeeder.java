@@ -54,7 +54,6 @@ public class DataSeeder implements CommandLineRunner {
                 guitarABC.setName("Guitar ABC");
                 guitarABC.setDescription("Đàn guitar ABC chất lượng cao");
                 guitarABC.setPrice(9000000);
-                guitarABC.setStockQuantity(5);
                 guitarABC.setCategory(guitarCategory);
                 guitarABC = productRepository.save(guitarABC); // Lưu sản phẩm trước để có ID
 
@@ -62,7 +61,6 @@ public class DataSeeder implements CommandLineRunner {
                 pianoXYZ.setName("Piano XYZ");
                 pianoXYZ.setDescription("Piano cao cấp, âm thanh hay");
                 pianoXYZ.setPrice(15000000);
-                pianoXYZ.setStockQuantity(20);
                 pianoXYZ.setCategory(pianoCategory);
                 pianoXYZ = productRepository.save(pianoXYZ); // Lưu sản phẩm trước để có ID
 
