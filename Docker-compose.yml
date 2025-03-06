@@ -1,182 +1,7 @@
 
 ########################################################################################
 
-#version: "3.8"
-#
-#services:
-#  # 1. Eureka Service (Service Discovery)
-#  eureka-service:
-#    container_name: eureka-service
-#    build:
-#      context: ./eureka-service
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8761:8761"
-#    networks:
-#      - microservice-net
-#
-#  # 2. API Gateway (Spring Cloud Gateway)
-#  api-gateway:
-#    container_name: api-gateway
-#    build:
-#      context: ./api-gateway
-#      dockerfile: Dockerfile
-#    ports:
-#      - "9000:9000"
-#    depends_on:
-#      - eureka-service
-#      - redis
-#      - zipkin
-#    environment:
-#      EUREKA_INSTANCE_HOSTNAME: api-gateway
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-#      SPRING_ZIPKIN_BASE-URL: http://zipkin:9411
-#      SPRING_DATA_REDIS_HOST: redis
-#      SPRING_DATA_REDIS_PORT: 6379
-#    networks:
-#      - microservice-net
-#
-#  # 3. Auth Service (Xác thực người dùng)
-#  auth-service:
-#    container_name: auth-service
-#    build:
-#      context: ./auth-service
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8081:8081"
-#    depends_on:
-#      - eureka-service
-#      - mysql
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-#      SPRING_DATASOURCE_USERNAME: root
-#      SPRING_DATASOURCE_PASSWORD: password
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-#      EUREKA_INSTANCE_HOSTNAME: auth-service
-#    networks:
-#      - microservice-net
-#
-#  # 4. Product Service (Quản lý sản phẩm)
-#  product-service:
-#    container_name: product-service
-#    build:
-#      context: ./product-service
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8082:8082"
-#    depends_on:
-#      - eureka-service
-#      - mysql
-#      - minio
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-#      SPRING_DATASOURCE_USERNAME: root
-#      SPRING_DATASOURCE_PASSWORD: password
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-#      EUREKA_INSTANCE_HOSTNAME: product-service
-#      MINIO_URL: http://minio:9000
-#      MINIO_ACCESS_KEY: minioadmin
-#      MINIO_SECRET_KEY: minioadmin
-#      MINIO_BUCKET_NAME: musicstore
-#    networks:
-#      - microservice-net
-#
-#  # 5. User Service (Quản lý thông tin cá nhân)
-#  user-service:
-#    container_name: user-service
-#    build:
-#      context: ./user-service
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8083:8083"
-#    depends_on:
-#      - eureka-service
-#      - mysql
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-#      SPRING_DATASOURCE_USERNAME: root
-#      SPRING_DATASOURCE_PASSWORD: password
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-#      EUREKA_INSTANCE_HOSTNAME: user-service
-#    networks:
-#      - microservice-net
-#
-#  # 6. MySQL Database
-#  mysql:
-#    container_name: mysql
-#    image: mysql:8.0
-#    environment:
-#      MYSQL_ROOT_PASSWORD: password
-#    ports:
-#      - "3307:3306"
-#    volumes:
-#      - mysql_data:/var/lib/mysql
-#      - ./mysql/init-scripts:/docker-entrypoint-initdb.d
-#    networks:
-#      - microservice-net
-#
-#  # 7. MinIO (Lưu trữ ảnh sản phẩm)
-#  minio:
-#    container_name: minio
-#    image: quay.io/minio/minio
-#    ports:
-#      - "9001:9000"  # Đổi mapping từ 9000:9000 thành 9001:9000
-#      - "9090:9090"
-#    environment:
-#      MINIO_ROOT_USER: minioadmin
-#      MINIO_ROOT_PASSWORD: minioadmin
-#    command: server /data --console-address ":9090"
-#    volumes:
-#      - minio_data:/data
-#    networks:
-#      - microservice-net
-#
-#  # 8. Redis (Caching & Rate Limiting)
-#  redis:
-#    image: redis:7.2
-#    container_name: redis
-#    ports:
-#      - "6379:6379"
-#    networks:
-#      - microservice-net
-#
-#  # 9. Zipkin (Distributed Tracing)
-#  zipkin:
-#    image: openzipkin/zipkin:latest
-#    container_name: zipkin
-#    ports:
-#      - "9411:9411"
-#    networks:
-#      - microservice-net
-#
-#  # 10. Prometheus (Monitoring)
-#  prometheus:
-#    image: prom/prometheus
-#    container_name: prometheus
-#    volumes:
-#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-#    ports:
-#      - "9091:9090"
-#    networks:
-#      - microservice-net
-#
-#  # 11. Grafana (Visualization)
-#  grafana:
-#    image: grafana/grafana
-#    container_name: grafana
-#    volumes:
-#      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
-#    ports:
-#      - "3001:3000"
-#    networks:
-#      - microservice-net
-#
-#networks:
-#  microservice-net:
-#
-#volumes:
-#  mysql_data:
-#  minio_data:
+version: "3.8"
 
 services:
   # 1. Eureka Service (Service Discovery)
@@ -211,7 +36,7 @@ services:
     networks:
       - microservice-net
 
-  # 3. Auth Service
+  # 3. Auth Service (Xác thực người dùng)
   auth-service:
     container_name: auth-service
     build:
@@ -231,7 +56,7 @@ services:
     networks:
       - microservice-net
 
-  # 4. Product Service
+  # 4. Product Service (Quản lý sản phẩm)
   product-service:
     container_name: product-service
     build:
@@ -256,7 +81,7 @@ services:
     networks:
       - microservice-net
 
-  # 5. User Service
+  # 5. User Service (Quản lý thông tin cá nhân)
   user-service:
     container_name: user-service
     build:
@@ -276,10 +101,10 @@ services:
     networks:
       - microservice-net
 
-  # 6. MySQL Database (Dùng bản nhẹ hơn)
+  # 6. MySQL Database
   mysql:
     container_name: mysql
-    image: mysql:8.0-oracle
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: password
     ports:
@@ -292,41 +117,41 @@ services:
 
   # 7. MinIO (Lưu trữ ảnh sản phẩm)
   minio:
-      container_name: minio
-      image: quay.io/minio/minio
-      ports:
-        - "9001:9000"  # Đổi mapping từ 9000:9000 thành 9001:9000
-        - "9090:9090"
-      environment:
-        MINIO_ROOT_USER: minioadmin
-        MINIO_ROOT_PASSWORD: minioadmin
-      command: server /data --console-address ":9090"
-      volumes:
-        - minio_data:/data
-      networks:
-        - microservice-net
+    container_name: minio
+    image: quay.io/minio/minio
+    ports:
+      - "9001:9000"  # Đổi mapping từ 9000:9000 thành 9001:9000
+      - "9090:9090"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9090"
+    volumes:
+      - minio_data:/data
+    networks:
+      - microservice-net
 
-  # 8. Redis
+  # 8. Redis (Caching & Rate Limiting)
   redis:
-    image: redis:alpine
+    image: redis:7.2
     container_name: redis
     ports:
       - "6379:6379"
     networks:
       - microservice-net
 
-  # 9. Zipkin
+  # 9. Zipkin (Distributed Tracing)
   zipkin:
-    image: openzipkin/zipkin:2.23.2
+    image: openzipkin/zipkin:latest
     container_name: zipkin
     ports:
       - "9411:9411"
     networks:
       - microservice-net
 
-  # 10. Prometheus
+  # 10. Prometheus (Monitoring)
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus
     container_name: prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -335,9 +160,9 @@ services:
     networks:
       - microservice-net
 
-  # 11. Grafana
+  # 11. Grafana (Visualization)
   grafana:
-    image: grafana/grafana:10.0.1
+    image: grafana/grafana
     container_name: grafana
     volumes:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini
@@ -352,6 +177,409 @@ networks:
 volumes:
   mysql_data:
   minio_data:
+
+#services:
+#  # 1. Eureka Service (Service Discovery)
+#  eureka-service:
+#    container_name: eureka-service
+#    build:
+#      context: ./eureka-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8761:8761"
+#    networks:
+#      - microservice-net
+#
+#  # 2. API Gateway (Spring Cloud Gateway)
+#  api-gateway:
+#    container_name: api-gateway
+#    build:
+#      context: ./api-gateway
+#      dockerfile: Dockerfile
+#    ports:
+#      - "9000:9000"
+#    depends_on:
+#      - eureka-service
+#      - redis
+#      - zipkin
+#    environment:
+#      EUREKA_INSTANCE_HOSTNAME: api-gateway
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      SPRING_ZIPKIN_BASE-URL: http://zipkin:9411
+#      SPRING_DATA_REDIS_HOST: redis
+#      SPRING_DATA_REDIS_PORT: 6379
+#    networks:
+#      - microservice-net
+#
+#  # 3. Auth Service
+#  auth-service:
+#    container_name: auth-service
+#    build:
+#      context: ./auth-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8081:8081"
+#    depends_on:
+#      - eureka-service
+#      - mysql
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      EUREKA_INSTANCE_HOSTNAME: auth-service
+#    networks:
+#      - microservice-net
+#
+#  # 4. Product Service
+#  product-service:
+#    container_name: product-service
+#    build:
+#      context: ./product-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8082:8082"
+#    depends_on:
+#      - eureka-service
+#      - mysql
+#      - minio
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      EUREKA_INSTANCE_HOSTNAME: product-service
+#      MINIO_URL: http://minio:9000
+#      MINIO_ACCESS_KEY: minioadmin
+#      MINIO_SECRET_KEY: minioadmin
+#      MINIO_BUCKET_NAME: musicstore
+#    networks:
+#      - microservice-net
+#
+#  # 5. User Service
+#  user-service:
+#    container_name: user-service
+#    build:
+#      context: ./user-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8083:8083"
+#    depends_on:
+#      - eureka-service
+#      - mysql
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      EUREKA_INSTANCE_HOSTNAME: user-service
+#    networks:
+#      - microservice-net
+#
+#  # 6. MySQL Database (Dùng bản nhẹ hơn)
+#  mysql:
+#    container_name: mysql
+#    image: mysql:8.0-oracle
+#    environment:
+#      MYSQL_ROOT_PASSWORD: password
+#    ports:
+#      - "3307:3306"
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#      - ./mysql/init-scripts:/docker-entrypoint-initdb.d
+#    networks:
+#      - microservice-net
+#
+#  # 7. MinIO (Lưu trữ ảnh sản phẩm)
+#  minio:
+#      container_name: minio
+#      image: quay.io/minio/minio
+#      ports:
+#        - "9001:9000"  # Đổi mapping từ 9000:9000 thành 9001:9000
+#        - "9090:9090"
+#      environment:
+#        MINIO_ROOT_USER: minioadmin
+#        MINIO_ROOT_PASSWORD: minioadmin
+#      command: server /data --console-address ":9090"
+#      volumes:
+#        - minio_data:/data
+#      networks:
+#        - microservice-net
+#
+#  # 8. Redis
+#  redis:
+#    image: redis:alpine
+#    container_name: redis
+#    ports:
+#      - "6379:6379"
+#    networks:
+#      - microservice-net
+#
+#  # 9. Zipkin
+#  zipkin:
+#    image: openzipkin/zipkin:2.23.2
+#    container_name: zipkin
+#    ports:
+#      - "9411:9411"
+#    networks:
+#      - microservice-net
+#
+#  # 10. Prometheus
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    volumes:
+#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    ports:
+#      - "9091:9090"
+#    networks:
+#      - microservice-net
+#
+#  # 11. Grafana
+#  grafana:
+#    image: grafana/grafana:10.0.1
+#    container_name: grafana
+#    volumes:
+#      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+#    ports:
+#      - "3001:3000"
+#    networks:
+#      - microservice-net
+#
+#  # 12. Elasticsearch
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+#    container_name: elasticsearch
+#    environment:
+#      - discovery.type=single-node
+#      - xpack.security.enabled=false  # Tắt bảo mật để tránh yêu cầu login
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
+#    networks:
+#      - microservice-net
+#
+#  # 13. Kibana- Giao diện quản lý Elasticsearch
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:8.11.0
+#    container_name: kibana
+#    depends_on:
+#      - elasticsearch
+#    environment:
+#      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+#    ports:
+#      - "5601:5601"
+#    networks:
+#      - microservice-net
+#
+#networks:
+#  microservice-net:
+#
+#volumes:
+#  mysql_data:
+#  minio_data:
+
+
+#version: "3.8"
+#
+#services:
+#  # 1. Eureka Service
+#  eureka-service:
+#    container_name: eureka-service
+#    build:
+#      context: ./eureka-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8761:8761"
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "1.0"
+#          memory: "512MB"
+#        reservations:
+#          cpus: "0.5"
+#          memory: "256MB"
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health || exit 1" ]
+#      interval: 15s   # Kiểm tra mỗi 15 giây
+#      timeout: 10s    # Chờ tối đa 10 giây trước khi fail
+#      retries: 10     # Thử 10 lần trước khi đánh dấu "unhealthy"
+#      start_period: 30s  # Đợi 30 giây trước khi bắt đầu kiểm tra
+#
+#
+#  # 2. API Gateway
+#  api-gateway:
+#    container_name: api-gateway
+#    build:
+#      context: ./api-gateway
+#      dockerfile: Dockerfile
+#    ports:
+#      - "9000:9000"
+#    depends_on:
+#      eureka-service:
+#        condition: service_healthy
+#    environment:
+#      EUREKA_INSTANCE_HOSTNAME: api-gateway
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "1.0"
+#          memory: "512MB"
+#        reservations:
+#          cpus: "0.5"
+#          memory: "256MB"
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:9000/actuator/health"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  # 3. Auth Service
+#  auth-service:
+#    container_name: auth-service
+#    build:
+#      context: ./auth-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8081:8081"
+#    depends_on:
+#      eureka-service:
+#        condition: service_healthy
+#      mysql:
+#        condition: service_healthy
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#
+#  # 4. Product Service
+#  product-service:
+#    container_name: product-service
+#    build:
+#      context: ./product-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8082:8082"
+#    depends_on:
+#      eureka-service:
+#        condition: service_healthy
+#      mysql:
+#        condition: service_healthy
+#      minio:
+#        condition: service_started
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      MINIO_URL: http://minio:9000
+#      MINIO_ACCESS_KEY: minioadmin
+#      MINIO_SECRET_KEY: minioadmin
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#
+#  # 5. User Service
+#  user-service:
+#    container_name: user-service
+#    build:
+#      context: ./user-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8083:8083"
+#    depends_on:
+#      eureka-service:
+#        condition: service_healthy
+#      mysql:
+#        condition: service_healthy
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#
+#  # 6. MySQL Database
+#  mysql:
+#    container_name: mysql
+#    image: mysql:8.0
+#    environment:
+#      MYSQL_ROOT_PASSWORD: password
+#    ports:
+#      - "3307:3306"
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#    healthcheck:
+#      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  # 7. MinIO
+#  minio:
+#    container_name: minio
+#    image: quay.io/minio/minio
+#    ports:
+#      - "9001:9000"
+#    environment:
+#      MINIO_ROOT_USER: minioadmin
+#      MINIO_ROOT_PASSWORD: minioadmin
+#    command: server /data
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#
+#  # 8. Redis
+#  redis:
+#    image: redis:alpine
+#    container_name: redis
+#    ports:
+#      - "6379:6379"
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "PING"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  # 9. Zipkin
+#  zipkin:
+#    image: openzipkin/zipkin:latest
+#    container_name: zipkin
+#    ports:
+#      - "9411:9411"
+#    networks:
+#      - microservice-net
+#    restart: unless-stopped
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:9411/health"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#networks:
+#  microservice-net:
+#volumes:
+#  mysql_data:
+#  minio_data:
+
+
 
 
 

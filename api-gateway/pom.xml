@@ -50,7 +50,6 @@
 			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
 		</dependency>
 
-
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing</artifactId>
@@ -65,7 +64,6 @@
 			<groupId>io.zipkin.reporter2</groupId>
 			<artifactId>zipkin-reporter-brave</artifactId>
 		</dependency>
-
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -99,12 +97,6 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!-- OAuth2 Resource Server (JWT Authentication) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-		</dependency>
-
 		<!-- Resilience4j Circuit Breaker -->
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
@@ -118,12 +110,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Spring Security Test -->
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
 
 	<dependencyManagement>

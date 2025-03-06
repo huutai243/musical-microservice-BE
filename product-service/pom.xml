@@ -83,14 +83,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!--  Spring Boot DevTools (Hỗ trợ Reload nhanh khi dev) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
-
 		<!--  Resilience4j Circuit Breaker -->
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
@@ -110,16 +102,22 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!--  OAuth2 Resource Server (Xác thực JWT) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-		</dependency>
-
 		<!--  Spring Security Configuration (Để dùng @PreAuthorize) -->
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-config</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate.validator</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>8.0.1.Final</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish</groupId>
+			<artifactId>jakarta.el</artifactId>
+			<version>4.0.2</version>
 		</dependency>
 
 		<dependency>
@@ -142,11 +140,9 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!--  Spring Boot Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
+			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
 		</dependency>
 	</dependencies>
 

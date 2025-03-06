@@ -46,28 +46,6 @@
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 
-		<!-- Spring Boot Testcontainers -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-testcontainers</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- Testcontainers JUnit Jupiter -->
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- Testcontainers MySQL (ví dụ nếu bạn dùng MySQL container) -->
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>mysql</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-
 		<!-- Spring Boot JPA + Hibernate -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -140,14 +118,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Spring Boot DevTools (Hỗ trợ Reload nhanh khi dev) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
@@ -156,21 +126,6 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
-		</dependency>
-
-
-		<!-- Spring Boot Test -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- TestContainers -->
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>mysql</artifactId>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -188,7 +143,6 @@
 
 	<build>
 		<plugins>
-			<!--  Cấu hình Annotation Processor để Lombok hoạt động -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -207,7 +161,6 @@
 				</configuration>
 			</plugin>
 
-			<!--  Đảm bảo Lombok không bị đóng gói vào JAR -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -221,7 +174,6 @@
 				</configuration>
 			</plugin>
 
-			<!--  Fix lỗi encoding khi copy resources -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
