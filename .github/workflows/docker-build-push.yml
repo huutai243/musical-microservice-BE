@@ -1,9 +1,11 @@
-name: Build and Push Docker Images
+name: Build, Push, and Cleanup Docker Images
 
 on:
   push:
     branches:
-      - master  # Auto build image nhánh master
+      - master  # Auto build image khi có commit vào nhánh master
+  schedule:
+    - cron: '0 0 * * *'  # Chạy hàng ngày vào 00:00 UTC để dọn dẹp image cũ
 
 jobs:
   build-and-push:
@@ -45,6 +47,35 @@ jobs:
         run: |
           docker build -t huutai2403/user-service:latest ./user-service
           docker push huutai2403/user-service:latest
+
+      - name: Logout from Docker Hub
+        run: docker logout
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: build-and-push  # Chạy cleanup sau khi build & push thành công
+
+    steps:
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Delete old images (chỉ giữ lại 3 phiên bản mới nhất)
+        run: |
+          IMAGE_NAMES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
+          TAGS_TO_KEEP=3
+
+          for IMAGE in "${IMAGE_NAMES[@]}"; do
+            ALL_TAGS=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+              "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/" | jq -r '.results | sort_by(.last_updated) | .[].name')
+
+            TAGS_TO_DELETE=$(echo "$ALL_TAGS" | head -n -$TAGS_TO_KEEP)
+
+            for TAG in $TAGS_TO_DELETE; do
+              curl -X DELETE -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+                "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/$TAG/"
+              echo "Deleted: huutai2403/$IMAGE:$TAG"
+            done
+          done
 
       - name: Logout from Docker Hub
         run: docker logout
