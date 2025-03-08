@@ -1,0 +1,50 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - master  # Chạy khi có commit vào nhánh master
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Build và Push Eureka Service
+      - name: Build and Push eureka-service
+        run: |
+          docker build -t huutai2403/eureka-service:latest ./eureka-service
+          docker push huutai2403/eureka-service:latest
+
+      # Build và Push API Gateway
+      - name: Build and Push api-gateway
+        run: |
+          docker build -t huutai2403/api-gateway:latest ./api-gateway
+          docker push huutai2403/api-gateway:latest
+
+      # Build và Push Auth Service
+      - name: Build and Push auth-service
+        run: |
+          docker build -t huutai2403/auth-service:latest ./auth-service
+          docker push huutai2403/auth-service:latest
+
+      # Build và Push Product Service
+      - name: Build and Push product-service
+        run: |
+          docker build -t huutai2403/product-service:latest ./product-service
+          docker push huutai2403/product-service:latest
+
+      # Build và Push User Service
+      - name: Build and Push user-service
+        run: |
+          docker build -t huutai2403/user-service:latest ./user-service
+          docker push huutai2403/user-service:latest
+
+      - name: Logout from Docker Hub
+        run: docker logout
