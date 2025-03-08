@@ -3,9 +3,9 @@ name: Build, Push, Cleanup, and Deploy to AWS EKS
 on:
   push:
     branches:
-      - master  # Auto build image khi có commit vào nhánh master
+      - master  # Tự động chạy khi có commit vào nhánh master
   schedule:
-    - cron: '0 0 * * *'  # Chạy hàng ngày vào 00:00 UTC để dọn dẹp image cũ
+    - cron: '0 0 * * *'  # Chạy cleanup hàng ngày vào 00:00 UTC
   workflow_dispatch:  # Cho phép chạy thủ công nếu cần
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Build and Push Services
+      - name: Build and Push Docker Images
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
@@ -81,7 +81,15 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name my-cluster --region ap-southeast-1
 
-      - name: Deploy to AWS EKS
+      - name: Apply Kubernetes YAML Manifests
+        run: |
+          kubectl apply -f k8s/eureka-service.yaml
+          kubectl apply -f k8s/api-gateway.yaml
+          kubectl apply -f k8s/auth-service.yaml
+          kubectl apply -f k8s/product-service.yaml
+          kubectl apply -f k8s/user-service.yaml
+
+      - name: Update Kubernetes Deployments with New Images
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
