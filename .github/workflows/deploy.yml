@@ -72,8 +72,7 @@ jobs:
           sudo mv kubectl /usr/local/bin/
 
       - name: Set Minikube context
-        run: |
-          kubectl config use-context minikube
+        run: kubectl config use-context minikube
 
       - name: Deploy Services to Minikube
         run: |
