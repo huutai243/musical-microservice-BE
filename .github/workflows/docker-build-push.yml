@@ -5,7 +5,7 @@ on:
     branches:
       - master  # Tự động chạy khi có commit vào nhánh master
   schedule:
-    - cron: '0 0 * * *'  # Chạy cleanup hàng ngày vào 00:00 UTC
+    - cron: '0 0 * * *'  # Cleanup hàng ngày vào 00:00 UTC
   workflow_dispatch:  # Cho phép chạy thủ công nếu cần
 
 jobs:
@@ -15,16 +15,18 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Build and Push Docker Images
+      - name: Build and Push Docker Compose Services
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
             echo "Building and pushing: huutai2403/$SERVICE:latest"
-            docker build -t huutai2403/$SERVICE:latest ./$SERVICE
+            docker build -t huutai2403/$SERVICE:latest -f $SERVICE/Dockerfile .
             docker push huutai2403/$SERVICE:latest
           done
 
@@ -33,13 +35,13 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
-    needs: build-and-push  # Chạy cleanup sau khi build & push thành công
+    needs: build-and-push
 
     steps:
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Delete old images (chỉ giữ lại 3 phiên bản mới nhất)
+      - name: Delete old images (Chỉ giữ lại 3 phiên bản mới nhất)
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           TAGS_TO_KEEP=3
@@ -62,7 +64,7 @@ jobs:
 
   deploy-to-eks:
     runs-on: ubuntu-latest
-    needs: build-and-push  # Chạy deploy sau khi build & push thành công
+    needs: build-and-push
 
     steps:
       - name: Configure AWS credentials
@@ -70,30 +72,32 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-1  # Singapore
+          aws-region: ap-southeast-1
 
-      - name: Install kubectl
+      - name: Install dependencies (kubectl, kompose)
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+          curl -L https://github.com/kubernetes/kompose/releases/download/v1.26.1/kompose-linux-amd64 -o kompose
+          chmod +x kompose && sudo mv kompose /usr/local/bin/
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name my-cluster --region ap-southeast-1
 
-      - name: Apply Kubernetes YAML Manifests
+      - name: Convert Docker Compose to Kubernetes Manifests
         run: |
-          kubectl apply -f k8s/eureka-service.yaml
-          kubectl apply -f k8s/api-gateway.yaml
-          kubectl apply -f k8s/auth-service.yaml
-          kubectl apply -f k8s/product-service.yaml
-          kubectl apply -f k8s/user-service.yaml
+          mkdir -p k8s-manifests
+          kompose convert -f docker-compose.yml -o k8s-manifests/
 
-      - name: Update Kubernetes Deployments with New Images
+      - name: Apply Kubernetes Manifests to EKS
+        run: |
+          kubectl apply -f k8s-manifests/
+
+      - name: Update Kubernetes Deployments with Latest Images
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
             echo "Updating Kubernetes Deployment for $SERVICE..."
             kubectl set image deployment/$SERVICE $SERVICE=huutai2403/$SERVICE:latest -n default
-            kubectl rollout restart deployment $SERVICE -n default
+            kubectl rollout restart deployment/$SERVICE -n default
           done
