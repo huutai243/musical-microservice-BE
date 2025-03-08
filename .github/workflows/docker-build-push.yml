@@ -3,7 +3,7 @@ name: Build, Push, Cleanup, and Deploy to AWS EKS
 on:
   push:
     branches:
-      - master  # Auto chạy khi có commit vào nhánh master
+      - master  # Auto build image khi có commit vào nhánh master
   schedule:
     - cron: '0 0 * * *'  # Chạy cleanup hàng ngày vào 00:00 UTC
   workflow_dispatch:  # Cho phép chạy thủ công nếu cần
@@ -24,7 +24,7 @@ jobs:
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
             echo "Building and pushing: huutai2403/$SERVICE:latest"
-            docker build -t huutai2403/$SERVICE:latest --file $SERVICE/Dockerfile $SERVICE
+            docker build -t huutai2403/$SERVICE:latest ./$SERVICE
             docker push huutai2403/$SERVICE:latest
           done
 
@@ -33,13 +33,13 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
-    needs: build-and-push  # Cleanup sau khi build & push thành công
+    needs: build-and-push
 
     steps:
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Delete old images (giữ lại 3 phiên bản mới nhất)
+      - name: Delete old images (chỉ giữ lại 3 phiên bản mới nhất)
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           TAGS_TO_KEEP=3
@@ -62,7 +62,7 @@ jobs:
 
   deploy-to-eks:
     runs-on: ubuntu-latest
-    needs: build-and-push  # Chạy deploy sau khi build & push thành công
+    needs: build-and-push  # Chạy sau khi build & push thành công
 
     steps:
       - name: Configure AWS credentials
@@ -85,9 +85,16 @@ jobs:
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
-            echo "Applying deployment for $SERVICE..."
-            kubectl apply -f k8s/$SERVICE-deployment.yaml || echo "⚠️ Lỗi khi apply $SERVICE, kiểm tra lại YAML"
-            echo "Updating Kubernetes Deployment for $SERVICE..."
-            kubectl set image deployment/$SERVICE $SERVICE=huutai2403/$SERVICE:latest -n default || echo "⚠️ Lỗi khi update image $SERVICE"
-            kubectl rollout restart deployment $SERVICE -n default
+            echo "Deploying $SERVICE to EKS..."
+
+            # Kiểm tra xem Deployment đã tồn tại chưa
+            if kubectl get deployment $SERVICE -n default &>/dev/null; then
+              echo "Deployment $SERVICE exists, updating image..."
+              kubectl set image deployment/$SERVICE $SERVICE=huutai2403/$SERVICE:latest -n default
+              kubectl rollout restart deployment/$SERVICE -n default
+            else
+              echo "Creating new deployment for $SERVICE..."
+              kubectl create deployment $SERVICE --image=huutai2403/$SERVICE:latest -n default
+              kubectl expose deployment $SERVICE --type=ClusterIP --port=80 -n default
+            fi
           done
