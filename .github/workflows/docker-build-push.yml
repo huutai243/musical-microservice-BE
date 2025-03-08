@@ -3,7 +3,7 @@ name: Build and Push Docker Images
 on:
   push:
     branches:
-      - master  # Chạy khi có commit vào nhánh master
+      - master  # Auto build image nhánh master
 
 jobs:
   build-and-push:
