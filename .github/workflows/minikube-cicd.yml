@@ -20,7 +20,7 @@ jobs:
       - name: Build and Push Docker Images
         run: |
           COMMIT_SHA=$(git rev-parse --short HEAD)  # Lấy SHA của commit hiện tại
-          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
+          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "mysql" "redis" "minio" "zipkin" "prometheus" "grafana")
           for SERVICE in "${SERVICES[@]}"; do
             echo "Building image for: $SERVICE"
             docker build -t huutai2403/$SERVICE:$COMMIT_SHA ./$SERVICE
@@ -50,6 +50,15 @@ jobs:
           for SERVICE in "${SERVICES[@]}"; do
             docker pull huutai2403/$SERVICE:latest
           done
+
+      - name: Wait for Redis to be Ready
+        run: |
+          echo "Waiting for Redis to be ready..."
+          until nc -z redis 6379; do
+            echo "Redis is not available yet..."
+            sleep 5
+          done
+          echo "Redis is ready!"    
 
       - name: Apply Kubernetes Manifests
         run: |
