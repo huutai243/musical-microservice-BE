@@ -13,6 +13,14 @@ spec:
       labels:
         app: api-gateway
     spec:
+      initContainers:
+        - name: wait-for-eureka
+          image: busybox
+          command:
+            - "sh"
+            - "-c"
+            - "until nc -z eureka-service 8761; do echo waiting for Eureka; sleep 2; done;"
+          # `nc -z` sẽ thử kết nối đến Eureka trên cổng 8761
       containers:
         - name: api-gateway
           image: huutai2403/api-gateway:latest
