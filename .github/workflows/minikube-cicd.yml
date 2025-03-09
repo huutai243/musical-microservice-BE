@@ -3,6 +3,8 @@ name: CI/CD to Minikube on Docker Desktop
 on:
   push:
     branches: [ "master" ]
+  schedule:
+    - cron: '0 0 * * *'  # Chạy hàng ngày vào 00:00 UTC để dọn dẹp image cũ
 
 jobs:
   build-deploy:
@@ -19,9 +21,10 @@ jobs:
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
-            echo "Building and pushing: $SERVICE"
-            docker build -t ${{ secrets.DOCKER_USERNAME }}/$SERVICE:latest ./$SERVICE
-            docker push ${{ secrets.DOCKER_USERNAME }}/$SERVICE:latest
+            echo "Building image for: $SERVICE"
+            docker build -t huutai2403/$SERVICE:latest ./$SERVICE
+            echo "Pushing image for: $SERVICE"
+            docker push huutai2403/$SERVICE:latest
           done
 
       - name: Start Minikube
@@ -36,7 +39,7 @@ jobs:
 
       - name: Apply Kubernetes Manifests
         run: |
-          echo " Applying all Kubernetes manifests..."
+          echo "Applying all Kubernetes manifests..."
           kubectl apply -f k8s/
 
       - name: Update Deployment Images
@@ -45,11 +48,38 @@ jobs:
           for SERVICE in "${SERVICES[@]}"; do
             echo "Updating deployment image for: $SERVICE"
             if kubectl get deployment "$SERVICE" -n default &>/dev/null; then
-              kubectl set image deployment/"$SERVICE" "$SERVICE"=${{ secrets.DOCKER_USERNAME }}/"$SERVICE":latest -n default || true
+              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":latest -n default || true
               kubectl rollout restart deployment/"$SERVICE" -n default
             else
               echo "Deployment $SERVICE not found, skipping update."
             fi
+          done
+
+      - name: Logout from Docker Hub
+        run: docker logout
+
+  cleanup:
+    runs-on: self-hosted
+    needs: build-deploy
+
+    steps:
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Delete old images (chỉ giữ lại 3 phiên bản mới nhất)
+        run: |
+          IMAGE_NAMES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
+          TAGS_TO_KEEP=3
+
+          for IMAGE in "${IMAGE_NAMES[@]}"; do
+            ALL_TAGS=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+              "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/" | jq -r '.results | sort_by(.last_updated) | .[].name')
+            TAGS_TO_DELETE=$(echo "$ALL_TAGS" | head -n -$TAGS_TO_KEEP)
+            for TAG in $TAGS_TO_DELETE; do
+              curl -X DELETE -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+                "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/$TAG/"
+              echo "Deleted: huutai2403/$IMAGE:$TAG"
+            done
           done
 
       - name: Logout from Docker Hub
