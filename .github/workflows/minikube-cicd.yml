@@ -35,18 +35,10 @@ jobs:
             fi
           done
 
-      - name: Apply Kubernetes Manifests (Only if changed)
+      - name: Apply Kubernetes Manifests (Always Apply)
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^k8s/')
-          if [[ -z "$CHANGED_FILES" ]]; then
-            echo "No changes in Kubernetes manifests, skipping apply."
-            exit 0
-          fi
-          
-          echo "Applying updated Kubernetes manifests..."
-          for FILE in $CHANGED_FILES; do
-            kubectl apply -f "$FILE" -n musical-microservice
-          done
+          echo "Applying Kubernetes manifests..."
+          kubectl apply -f k8s/ -n musical-microservice
 
       - name: Update Deployment Images
         run: |
