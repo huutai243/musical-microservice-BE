@@ -16,6 +16,7 @@ spec:
       containers:
         - name: auth-service
           image: huutai2403/auth-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
           env:

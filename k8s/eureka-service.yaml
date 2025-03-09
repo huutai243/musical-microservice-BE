@@ -16,6 +16,7 @@ spec:
       containers:
         - name: eureka-service
           image: huutai2403/eureka-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8761
           env:
