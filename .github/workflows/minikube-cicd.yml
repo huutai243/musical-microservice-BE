@@ -18,25 +18,36 @@ jobs:
         run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
-            echo "Building and pushing: $SERVICE"
+            echo " Building and pushing: $SERVICE"
             docker build -t ${{ secrets.DOCKER_USERNAME }}/$SERVICE:latest ./$SERVICE
             docker push ${{ secrets.DOCKER_USERNAME }}/$SERVICE:latest
           done
 
-      - name: Set Minikube context and Deploy to Minikube
+      - name: Start Minikube
         run: |
+          if ! minikube status &>/dev/null; then
+            echo " Starting Minikube..."
+            minikube start --driver=docker
+          else
+            echo "Minikube is already running."
+          fi
           kubectl config use-context minikube
+
+      - name: Apply Kubernetes Manifests
+        run: |
+          echo "🚀 Applying all Kubernetes manifests..."
+          kubectl apply -f k8s/
+
+      - name: Update Deployment Images
+        run: |
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
-            echo "Deploying $SERVICE..."
+            echo " Updating deployment image for: $SERVICE"
             if kubectl get deployment "$SERVICE" -n default &>/dev/null; then
-              echo "Deployment $SERVICE exists, updating image..."
-              kubectl set image deployment/"$SERVICE" "$SERVICE"=${{ secrets.DOCKER_USERNAME }}/"$SERVICE":latest -n default
+              kubectl set image deployment/"$SERVICE" "$SERVICE"=${{ secrets.DOCKER_USERNAME }}/"$SERVICE":latest -n default || true
               kubectl rollout restart deployment/"$SERVICE" -n default
             else
-              echo "Creating deployment for $SERVICE..."
-              kubectl create deployment "$SERVICE" --image=${{ secrets.DOCKER_USERNAME }}/"$SERVICE":latest -n default
-              kubectl expose deployment "$SERVICE" --type=ClusterIP --port=80 -n default
+              echo " Deployment $SERVICE not found, skipping update."
             fi
           done
 
