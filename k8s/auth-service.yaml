@@ -13,10 +13,6 @@ spec:
       labels:
         app: auth-service
     spec:
-      initContainers:
-        - name: wait-for-eureka
-          image: busybox
-          command: ['sh', '-c', 'until nc -z eureka-service 8761; do echo waiting for eureka...; sleep 5; done']
       containers:
         - name: auth-service
           image: huutai2403/auth-service:latest
@@ -25,7 +21,7 @@ spec:
             - containerPort: 8081
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+              value: "jdbc:mysql://mysql:3306/auth_db"
             - name: SPRING_DATASOURCE_USERNAME
               value: "root"
             - name: SPRING_DATASOURCE_PASSWORD

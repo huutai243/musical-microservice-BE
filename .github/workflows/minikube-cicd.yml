@@ -63,7 +63,7 @@ jobs:
           for SERVICE in "${SERVICES[@]}"; do
             echo "Updating deployment image for: $SERVICE"
             if kubectl get deployment "$SERVICE" -n musical-microservice &>/dev/null; then
-              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":$COMMIT_SHA -n musical-microservice || true
+              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":$COMMIT_SHA -n musical-microservice
               kubectl rollout restart deployment/"$SERVICE" -n musical-microservice
             else
               echo "Deployment $SERVICE not found, skipping update."
