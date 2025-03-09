@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: musical-microservice
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,6 +40,13 @@ spec:
               value: "minioadmin"
             - name: MINIO_ROOT_PASSWORD
               value: "minioadmin"
+          volumeMounts:
+            - name: minio-storage
+              mountPath: /data
+      volumes:
+        - name: minio-storage
+          persistentVolumeClaim:
+            claimName: minio-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -41,4 +60,7 @@ spec:
     - protocol: TCP
       port: 9000
       targetPort: 9000
-  type: ClusterIP
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+  type: LoadBalancer
