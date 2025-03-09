@@ -32,6 +32,8 @@ public class ApiGatewayApplication {
                         .uri("lb://PAYMENT-SERVICE"))
                 .route("notification-service", r -> r.path("/api/notifications/**")
                         .uri("lb://NOTIFICATION-SERVICE"))
+                .route("inventory-service", r -> r.path("/api/inventory/**")
+                        .uri("lb://INVENTORY-SERVICE"))
                 .build();
     }
 }

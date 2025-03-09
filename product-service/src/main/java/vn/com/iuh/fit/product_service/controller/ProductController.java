@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import vn.com.iuh.fit.product_service.client.InventoryClient;
 import vn.com.iuh.fit.product_service.dto.ProductRequest;
 import vn.com.iuh.fit.product_service.dto.ProductResponse;
 import vn.com.iuh.fit.product_service.service.ProductService;
@@ -18,6 +19,13 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+    private final InventoryClient inventoryClient;
+
+    @Autowired
+    public ProductController(ProductService productService, InventoryClient inventoryClient) {
+        this.productService = productService;
+        this.inventoryClient = inventoryClient;
+    }
 
     /**
      * API lấy danh sách tất cả sản phẩm
