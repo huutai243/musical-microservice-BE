@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-  namespace: musical-microservice
-data:
-  MINIO_BUCKET_NAME: "musicstore"

@@ -26,7 +26,6 @@ services:
     depends_on:
       - eureka-service
       - redis
-      - zipkin
     environment:
       EUREKA_INSTANCE_HOSTNAME: api-gateway
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
@@ -137,37 +136,6 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
-    networks:
-      - microservice-net
-
-  # 9. Zipkin (Distributed Tracing)
-  zipkin:
-    image: openzipkin/zipkin:latest
-    container_name: zipkin
-    ports:
-      - "9411:9411"
-    networks:
-      - microservice-net
-
-  # 10. Prometheus (Monitoring)
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9091:9090"
-    networks:
-      - microservice-net
-
-  # 11. Grafana (Visualization)
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    volumes:
-      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
-    ports:
-      - "3001:3000"
     networks:
       - microservice-net
 

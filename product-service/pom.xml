@@ -29,12 +29,6 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-		<!--  Spring Boot Actuator (Monitoring) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
-
 		<!--  Spring Boot JPA + Hibernate -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -83,19 +77,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!--  Resilience4j Circuit Breaker -->
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-spring-boot3</artifactId>
-		</dependency>
-
-		<!--  SpringDoc OpenAPI (Swagger UI) -->
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.4.0</version>
-		</dependency>
-
 		<!--  Spring Security -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -138,11 +119,6 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.12.5</version>
 			<scope>runtime</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
 		</dependency>
 	</dependencies>
 

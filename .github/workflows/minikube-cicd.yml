@@ -1,94 +1,94 @@
-name: CI/CD to Kubernetes on Docker Desktop
-
-on:
-  push:
-    branches: [ "master" ]
-  schedule:
-    - cron: '0 0 * * *'  # Dọn dẹp image cũ hàng ngày vào 00:00 UTC
-
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Build & Push Docker Images (Only for Custom Services)
-        run: |
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "minio" "zipkin")
-
-          for SERVICE in "${SERVICES[@]}"; do
-            if [[ -f "./$SERVICE/Dockerfile" ]]; then
-              echo "Building image for: $SERVICE"
-              docker build -t huutai2403/$SERVICE:$COMMIT_SHA ./$SERVICE
-              docker tag huutai2403/$SERVICE:$COMMIT_SHA huutai2403/$SERVICE:latest
-              echo "Pushing image for: $SERVICE"
-              docker push huutai2403/$SERVICE:$COMMIT_SHA
-              docker push huutai2403/$SERVICE:latest
-            else
-              echo "Skipping build for $SERVICE (Dockerfile not found)"
-            fi
-          done
-
-      - name: Apply Kubernetes Manifests (Always Apply)
-        run: |
-          echo "Applying Kubernetes manifests..."
-          kubectl apply -f k8s/ -n musical-microservice
-
-      - name: Update Deployment Images
-        run: |
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "minio" "zipkin")
-
-          for SERVICE in "${SERVICES[@]}"; do
-            if kubectl get deployment "$SERVICE" -n musical-microservice &>/dev/null; then
-              echo "Updating deployment image for: $SERVICE"
-              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":$COMMIT_SHA -n musical-microservice
-              kubectl rollout restart deployment/"$SERVICE" -n musical-microservice
-            else
-              echo "Deployment $SERVICE not found, skipping update."
-            fi
-          done
-
-      - name: Logout from Docker Hub
-        run: docker logout
-
-  cleanup:
-    runs-on: self-hosted
-    needs: build-deploy
-
-    steps:
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Delete old images (Keep only 3 latest versions)
-        run: |
-          IMAGE_NAMES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "minio" "zipkin")
-          TAGS_TO_KEEP=3
-
-          for IMAGE in "${IMAGE_NAMES[@]}"; do
-            echo "Fetching tags for $IMAGE..."
-            ALL_TAGS=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
-              "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/" | jq -r '.results | sort_by(.last_updated) | .[].name')
-
-            TAGS_TO_DELETE=$(echo "$ALL_TAGS" | head -n -$TAGS_TO_KEEP)
-
-            if [[ -z "$TAGS_TO_DELETE" ]]; then
-              echo "No old tags to delete for $IMAGE."
-              continue
-            fi
-
-            for TAG in $TAGS_TO_DELETE; do
-              echo "Deleting: huutai2403/$IMAGE:$TAG"
-              curl -X DELETE -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
-                "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/$TAG/" || echo "Failed to delete $TAG"
-            done
-          done
-
-      - name: Logout from Docker Hub
-        run: docker logout
+#name: CI/CD to Kubernetes on Docker Desktop
+#
+#on:
+#  push:
+#    branches: [ "master" ]
+#  schedule:
+#    - cron: '0 0 * * *'  # Dọn dẹp image cũ hàng ngày vào 00:00 UTC
+#
+#jobs:
+#  build-deploy:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Log in to Docker Hub
+#        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+#
+#      - name: Build & Push Docker Images (Only for Custom Services)
+#        run: |
+#          COMMIT_SHA=$(git rev-parse --short HEAD)
+#          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "minio" "zipkin")
+#
+#          for SERVICE in "${SERVICES[@]}"; do
+#            if [[ -f "./$SERVICE/Dockerfile" ]]; then
+#              echo "Building image for: $SERVICE"
+#              docker build -t huutai2403/$SERVICE:$COMMIT_SHA ./$SERVICE
+#              docker tag huutai2403/$SERVICE:$COMMIT_SHA huutai2403/$SERVICE:latest
+#              echo "Pushing image for: $SERVICE"
+#              docker push huutai2403/$SERVICE:$COMMIT_SHA
+#              docker push huutai2403/$SERVICE:latest
+#            else
+#              echo "Skipping build for $SERVICE (Dockerfile not found)"
+#            fi
+#          done
+#
+#      - name: Apply Kubernetes Manifests (Always Apply)
+#        run: |
+#          echo "Applying Kubernetes manifests..."
+#          kubectl apply -f k8s/ -n musical-microservice
+#
+#      - name: Update Deployment Images
+#        run: |
+#          COMMIT_SHA=$(git rev-parse --short HEAD)
+#          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "minio" "zipkin")
+#
+#          for SERVICE in "${SERVICES[@]}"; do
+#            if kubectl get deployment "$SERVICE" -n musical-microservice &>/dev/null; then
+#              echo "Updating deployment image for: $SERVICE"
+#              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":$COMMIT_SHA -n musical-microservice
+#              kubectl rollout restart deployment/"$SERVICE" -n musical-microservice
+#            else
+#              echo "Deployment $SERVICE not found, skipping update."
+#            fi
+#          done
+#
+#      - name: Logout from Docker Hub
+#        run: docker logout
+#
+#  cleanup:
+#    runs-on: self-hosted
+#    needs: build-deploy
+#
+#    steps:
+#      - name: Log in to Docker Hub
+#        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+#
+#      - name: Delete old images (Keep only 3 latest versions)
+#        run: |
+#          IMAGE_NAMES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service" "minio" "zipkin")
+#          TAGS_TO_KEEP=3
+#
+#          for IMAGE in "${IMAGE_NAMES[@]}"; do
+#            echo "Fetching tags for $IMAGE..."
+#            ALL_TAGS=$(curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+#              "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/" | jq -r '.results | sort_by(.last_updated) | .[].name')
+#
+#            TAGS_TO_DELETE=$(echo "$ALL_TAGS" | head -n -$TAGS_TO_KEEP)
+#
+#            if [[ -z "$TAGS_TO_DELETE" ]]; then
+#              echo "No old tags to delete for $IMAGE."
+#              continue
+#            fi
+#
+#            for TAG in $TAGS_TO_DELETE; do
+#              echo "Deleting: huutai2403/$IMAGE:$TAG"
+#              curl -X DELETE -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+#                "https://hub.docker.com/v2/repositories/huutai2403/$IMAGE/tags/$TAG/" || echo "Failed to delete $TAG"
+#            done
+#          done
+#
+#      - name: Logout from Docker Hub
+#        run: docker logout
