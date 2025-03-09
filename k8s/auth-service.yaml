@@ -13,6 +13,10 @@ spec:
       labels:
         app: auth-service
     spec:
+      initContainers:
+        - name: wait-for-eureka
+          image: busybox
+          command: ['sh', '-c', 'until nc -z eureka-service 8761; do echo waiting for eureka...; sleep 5; done']
       containers:
         - name: auth-service
           image: huutai2403/auth-service:latest

@@ -13,6 +13,10 @@ spec:
       labels:
         app: api-gateway
     spec:
+      initContainers:
+        - name: wait-for-eureka
+          image: busybox
+          command: ['sh', '-c', 'until nc -z eureka-service 8761; do echo waiting for eureka...; sleep 5; done']
       containers:
         - name: api-gateway
           image: huutai2403/api-gateway:latest
@@ -28,18 +32,7 @@ spec:
               value: "redis"
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 9000
-            initialDelaySeconds: 10
-            periodSeconds: 5
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 9000
-            initialDelaySeconds: 5
-            periodSeconds: 5
+          # Tạm thời tắt livenessProbe và readinessProbe
 ---
 apiVersion: v1
 kind: Service

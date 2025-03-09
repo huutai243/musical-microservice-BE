@@ -13,6 +13,10 @@ spec:
       labels:
         app: user-service
     spec:
+      initContainers:
+        - name: wait-for-eureka
+          image: busybox
+          command: ['sh', '-c', 'until nc -z eureka-service 8761; do echo waiting for eureka...; sleep 5; done']
       containers:
         - name: user-service
           image: huutai2403/user-service:latest
@@ -35,18 +39,6 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: MYSQL_PASSWORD
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8083
-            initialDelaySeconds: 10
-            periodSeconds: 5
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8083
-            initialDelaySeconds: 5
-            periodSeconds: 5
       restartPolicy: Always
 ---
 apiVersion: v1
