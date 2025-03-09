@@ -1,16 +1,37 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: microservices-ingress
+  name: eureka-service
+  namespace: musical-microservice
 spec:
-  rules:
-    - host: microservices.local
-      http:
-        paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: api-gateway
-                port:
-                  number: 80
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eureka-service
+  template:
+    metadata:
+      labels:
+        app: eureka-service
+    spec:
+      containers:
+        - name: eureka-service
+          image: huutai2403/eureka-service:latest
+          ports:
+            - containerPort: 8761
+          env:
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "eureka-service"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-service
+  namespace: musical-microservice
+spec:
+  selector:
+    app: eureka-service
+  ports:
+    - protocol: TCP
+      port: 8761
+      targetPort: 8761
+  type: ClusterIP

@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: product-service
+  namespace: musical-microservice
 spec:
   replicas: 1
   selector:
@@ -15,22 +16,49 @@ spec:
       containers:
         - name: product-service
           image: huutai2403/product-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8082
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SPRING_DATASOURCE_URL
             - name: MINIO_URL
-              value: "http://minio:9000"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: MINIO_URL
             - name: MINIO_ACCESS_KEY
-              value: "minioadmin"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ACCESS_KEY
             - name: MINIO_SECRET_KEY
-              value: "minioadmin"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_SECRET_KEY
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: product-service
+  namespace: musical-microservice
 spec:
   selector:
     app: product-service

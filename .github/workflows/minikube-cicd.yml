@@ -19,11 +19,14 @@ jobs:
 
       - name: Build and Push Docker Images
         run: |
+          COMMIT_SHA=$(git rev-parse --short HEAD)  # Lấy SHA của commit hiện tại
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
             echo "Building image for: $SERVICE"
-            docker build -t huutai2403/$SERVICE:latest ./$SERVICE
+            docker build -t huutai2403/$SERVICE:$COMMIT_SHA ./$SERVICE
+            docker tag huutai2403/$SERVICE:$COMMIT_SHA huutai2403/$SERVICE:latest
             echo "Pushing image for: $SERVICE"
+            docker push huutai2403/$SERVICE:$COMMIT_SHA
             docker push huutai2403/$SERVICE:latest
           done
 
@@ -36,20 +39,32 @@ jobs:
             echo "Minikube is already running."
           fi
           kubectl config use-context minikube
+          
+          # Tạo namespace nếu chưa tồn tại
+          kubectl get namespace musical-microservice || kubectl create namespace musical-microservice
+
+      - name: Pull Docker Images to Minikube
+        run: |
+          eval $(minikube docker-env)  # Chạy Minikube với môi trường Docker
+          SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
+          for SERVICE in "${SERVICES[@]}"; do
+            docker pull huutai2403/$SERVICE:latest
+          done
 
       - name: Apply Kubernetes Manifests
         run: |
           echo "Applying all Kubernetes manifests..."
-          kubectl apply -f k8s/
+          kubectl apply -f k8s/ -n musical-microservice
 
       - name: Update Deployment Images
         run: |
+          COMMIT_SHA=$(git rev-parse --short HEAD)
           SERVICES=("eureka-service" "api-gateway" "auth-service" "product-service" "user-service")
           for SERVICE in "${SERVICES[@]}"; do
             echo "Updating deployment image for: $SERVICE"
-            if kubectl get deployment "$SERVICE" -n default &>/dev/null; then
-              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":latest -n default || true
-              kubectl rollout restart deployment/"$SERVICE" -n default
+            if kubectl get deployment "$SERVICE" -n musical-microservice &>/dev/null; then
+              kubectl set image deployment/"$SERVICE" "$SERVICE"=huutai2403/"$SERVICE":$COMMIT_SHA -n musical-microservice || true
+              kubectl rollout restart deployment/"$SERVICE" -n musical-microservice
             else
               echo "Deployment $SERVICE not found, skipping update."
             fi
