@@ -1,0 +1,36 @@
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  annotations:
+#    kompose.cmd: C:\WINDOWS\system32\kompose.exe convert -f docker-compose.yml -o k8s/
+#    kompose.version: 1.30.0 (9d8dcb518)
+#  creationTimestamp: null
+#  labels:
+#    io.kompose.service: grafana
+#  name: grafana
+#  namespace: default
+#spec:
+#  ports:
+#    - name: "3001"
+#      port: 3001
+#      targetPort: 3000
+#  selector:
+#    io.kompose.service: grafana
+#status:
+#  loadBalancer: {}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP  # Chỉ dùng trong cluster
+
