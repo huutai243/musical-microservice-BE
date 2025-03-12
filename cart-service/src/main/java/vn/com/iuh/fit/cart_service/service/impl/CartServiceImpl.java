@@ -1,7 +1,10 @@
 package vn.com.iuh.fit.cart_service.service.impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import vn.com.iuh.fit.cart_service.client.ProductClient;
 import vn.com.iuh.fit.cart_service.dto.CartItemDTO;
 import vn.com.iuh.fit.cart_service.dto.ProductDTO;
 import vn.com.iuh.fit.cart_service.entity.CartItem;
@@ -14,36 +17,59 @@ import java.util.stream.Collectors;
 
 @Service
 public class CartServiceImpl implements CartService {
-    private final CartRepository cartRepository;
-    private final RestTemplate restTemplate;
 
-    public CartServiceImpl(CartRepository cartRepository, RestTemplate restTemplate) {
+    private final CartRepository cartRepository;
+    private final ProductClient productClient;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Autowired
+    public CartServiceImpl(CartRepository cartRepository, ProductClient productClient, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.cartRepository = cartRepository;
-        this.restTemplate = restTemplate;
+        this.productClient = productClient;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public void addItem(String userId, String productId, int requestedQuantity) throws Exception {
-        ProductDTO product = restTemplate.getForObject("http://product-service/products/" + productId, ProductDTO.class);
+        ProductDTO product = productClient.getProductById(productId);
         CartItem cartItem = new CartItem(productId, product.getName(), product.getPrice(), requestedQuantity, product.getImageUrl());
-        cartRepository.addToCart(userId, cartItem);
+        String cartItemJson = objectMapper.writeValueAsString(cartItem);
+        String key = "cart:" + userId;
+        redisTemplate.opsForHash().put(key, productId, cartItemJson);
     }
+
 
     @Override
     public List<CartItemDTO> getCart(String userId) throws Exception {
-        return cartRepository.getCart(userId).stream()
-                .map(item -> new CartItemDTO(item.getProductId(), item.getName(), item.getPrice(), item.getRequestedQuantity(), item.getImageUrl()))
+        String key = "cart:" + userId;
+
+        return redisTemplate.opsForHash().values(key).stream()
+                .filter(json -> json instanceof String)
+                .map(json -> {
+                    try {
+                        return objectMapper.readValue((String) json, CartItemDTO.class);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                })
+                .filter(item -> item != null)
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public void removeItem(String userId, String productId) {
-        cartRepository.removeItem(userId, productId);
+        String key = "cart:" + userId;
+        redisTemplate.opsForHash().delete(key, "productId:" + productId);
     }
 
     @Override
     public void clearCart(String userId) {
-        cartRepository.clearCart(userId);
+        String key = "cart:" + userId;
+        redisTemplate.delete(key);
     }
 
     @Override
@@ -51,7 +77,6 @@ public class CartServiceImpl implements CartService {
         List<CartItem> guestCart = cartRepository.getCart(guestId);
         List<CartItem> userCart = cartRepository.getCart(userId);
 
-        // Hợp nhất giỏ hàng: Nếu sản phẩm đã có trong user cart, tăng số lượng
         for (CartItem guestItem : guestCart) {
             Optional<CartItem> existingItem = userCart.stream()
                     .filter(item -> item.getProductId().equals(guestItem.getProductId()))
@@ -67,5 +92,4 @@ public class CartServiceImpl implements CartService {
         cartRepository.saveCart(userId, userCart);
         cartRepository.clearCart(guestId);
     }
-
 }

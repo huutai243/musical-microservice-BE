@@ -10,7 +10,7 @@ import vn.com.iuh.fit.cart_service.service.CartService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/cart")
+@RequestMapping("api/cart")
 public class CartController {
     private final CartService cartService;
 
@@ -18,7 +18,6 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    // Thêm sản phẩm vào giỏ hàng
     @PostMapping("/add")
     public ResponseEntity<String> addToCart(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -37,7 +36,6 @@ public class CartController {
         return ResponseEntity.ok("Sản phẩm đã thêm vào giỏ hàng.");
     }
 
-    // Khi User đăng nhập, hợp nhất giỏ hàng Guest vào tài khoản
     @PostMapping("/merge-cart")
     public ResponseEntity<String> mergeCart(@RequestParam String userId,
                                             @RequestParam String guestId) throws Exception {
@@ -45,23 +43,26 @@ public class CartController {
         return ResponseEntity.ok("Giỏ hàng của khách đã được hợp nhất với tài khoản.");
     }
 
-    // Lấy giỏ hàng
     @GetMapping("/{userId}")
     public ResponseEntity<List<CartItemDTO>> getCart(@PathVariable String userId) throws Exception {
-        return ResponseEntity.ok(cartService.getCart(userId));
+        List<CartItemDTO> cartItems = cartService.getCart(userId);
+
+        if (cartItems.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(cartItems);
     }
 
-    // Xóa một sản phẩm khỏi giỏ hàng
     @DeleteMapping("/remove")
     public ResponseEntity<String> removeFromCart(@RequestParam String userId, @RequestParam String productId) {
         cartService.removeItem(userId, productId);
-        return ResponseEntity.ok("Product removed from cart");
+        return ResponseEntity.ok("Sản phẩm đã được xóa khỏi giỏ hàng");
     }
 
-    //  Xóa toàn bộ giỏ hàng của người dùng
     @DeleteMapping("/clear/{userId}")
     public ResponseEntity<String> clearCart(@PathVariable String userId) {
         cartService.clearCart(userId);
-        return ResponseEntity.ok("Cart cleared");
+        return ResponseEntity.ok("Đã xóa toàn bộ trong giỏ hàng");
     }
 }

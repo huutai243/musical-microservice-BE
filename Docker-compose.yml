@@ -79,7 +79,33 @@ services:
       MINIO_BUCKET_NAME: musicstore
     networks:
       - microservice-net
-  # 6. Inventory Service (Quản lý tồn kho)
+
+  # 5. Cart Service (Quản lý giỏ hàng)
+  cart-service:
+    container_name: cart-service
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    depends_on:
+      - eureka-service
+      - redis
+    environment:
+      SPRING_APPLICATION_NAME: cart-service
+      SERVER_PORT: 8085
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD:
+      SPRING_DATA_REDIS_TIMEOUT: 60s
+      SPRING_DATA_REDIS_DATABASE: 0
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: cart-service
+    networks:
+      - microservice-net
+
+  # 7. Inventory Service (Quản lý tồn kho)
   inventory-service:
     container_name: inventory-service
     build:
@@ -100,7 +126,7 @@ services:
     networks:
       - microservice-net
 
-  # 5. User Service (Quản lý thông tin cá nhân)
+  # 8. User Service (Quản lý thông tin cá nhân)
   user-service:
     container_name: user-service
     build:
@@ -120,7 +146,7 @@ services:
     networks:
       - microservice-net
 
-  # 6. MySQL Database
+  # 9. MySQL Database
   mysql:
     container_name: mysql
     image: mysql:8.0
@@ -134,7 +160,7 @@ services:
     networks:
       - microservice-net
 
-  # 7. MinIO (Lưu trữ ảnh sản phẩm)
+  # 10. MinIO (Lưu trữ ảnh sản phẩm)
   minio:
     container_name: minio
     image: quay.io/minio/minio
@@ -150,21 +176,26 @@ services:
     networks:
       - microservice-net
 
-  # 8. Redis (Caching & Rate Limiting)
+  # 11. Redis (Caching & Rate Limiting)
   redis:
     image: redis:7.2
     container_name: redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
     networks:
       - microservice-net
 
-networks:
-  microservice-net:
-
 volumes:
+  redis-data:
+    driver: local
+
   mysql_data:
   minio_data:
+
+networks:
+  microservice-net:
 
 
 #Eureka Dashboard: http://localhost:8761

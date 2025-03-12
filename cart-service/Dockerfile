@@ -28,4 +28,4 @@ ENV JAVA_OPTS="-XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
 EXPOSE 8085
 
 # Chạy ứng dụng với Java tối ưu
-CMD ["sh", "-c", "java $JAVA_OPTS -jar cart-service.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar Cart-Service.jar"]
