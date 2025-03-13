@@ -186,17 +186,83 @@ services:
       - redis-data:/data
     networks:
       - microservice-net
+  # 12. Order Service
+  order-service:
+    container_name: order-service
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    depends_on:
+      - eureka-service
+      - postgres
+      - kafka
+    environment:
+      SPRING_APPLICATION_NAME: order-service
+      SERVER_PORT: 8086
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: order-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: order-service
+    networks:
+      - microservice-net
+
+  # 13. PostgreSQL
+  postgres:
+    container_name: postgres
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - microservice-net
+
+  # 14. Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.2.2
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - microservice-net
+
+  # 15. Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.2
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - microservice-net
 
 volumes:
   redis-data:
     driver: local
-
   mysql_data:
   minio_data:
 
 networks:
   microservice-net:
-
 
 #Eureka Dashboard: http://localhost:8761
 #API Gateway: http://localhost:9000
