@@ -33,11 +33,34 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void addItem(String userId, String productId, int requestedQuantity) throws Exception {
-        ProductDTO product = productClient.getProductById(productId);
-        CartItem cartItem = new CartItem(productId, product.getName(), product.getPrice(), requestedQuantity, product.getImageUrl());
-        String cartItemJson = objectMapper.writeValueAsString(cartItem);
         String key = "cart:" + userId;
-        redisTemplate.opsForHash().put(key, productId, cartItemJson);
+        Object existingItemJson = redisTemplate.opsForHash().get(key, productId);
+
+        if (existingItemJson != null) {
+            CartItem cartItem = objectMapper.readValue(existingItemJson.toString(), CartItem.class);
+            int newQuantity = cartItem.getRequestedQuantity() + requestedQuantity;
+            if (newQuantity <= 0) {
+                redisTemplate.opsForHash().delete(key, productId);
+                return;
+            }
+            cartItem.setRequestedQuantity(newQuantity);
+            String updatedCartItemJson = objectMapper.writeValueAsString(cartItem);
+            redisTemplate.opsForHash().put(key, productId, updatedCartItemJson);
+        } else {
+            if (requestedQuantity <= 0) {
+                return;
+            }
+            ProductDTO product = productClient.getProductById(productId);
+            CartItem cartItem = new CartItem(
+                    productId,
+                    product.getName(),
+                    product.getPrice(),
+                    requestedQuantity,
+                    product.getFirstImageUrl()
+            );
+            String cartItemJson = objectMapper.writeValueAsString(cartItem);
+            redisTemplate.opsForHash().put(key, productId, cartItemJson);
+        }
     }
 
 
@@ -49,7 +72,13 @@ public class CartServiceImpl implements CartService {
                 .filter(json -> json instanceof String)
                 .map(json -> {
                     try {
-                        return objectMapper.readValue((String) json, CartItemDTO.class);
+                        CartItemDTO item = objectMapper.readValue((String) json, CartItemDTO.class);
+                        if (item.getImageUrl() == null) {
+                            ProductDTO product = productClient.getProductById(item.getProductId());
+                            item.setImageUrl(product.getFirstImageUrl());
+                        }
+
+                        return item;
                     } catch (Exception e) {
                         e.printStackTrace();
                         return null;
@@ -59,12 +88,13 @@ public class CartServiceImpl implements CartService {
                 .collect(Collectors.toList());
     }
 
-
-    @Override
     public void removeItem(String userId, String productId) {
         String key = "cart:" + userId;
-        redisTemplate.opsForHash().delete(key, "productId:" + productId);
+//        String productKey = String.valueOf(productId);
+//        redisTemplate.opsForHash().delete(key, productKey);
+        redisTemplate.opsForHash().delete(key, productId);
     }
+
 
     @Override
     public void clearCart(String userId) {
