@@ -1,6 +1,5 @@
 package vn.com.iuh.fit.order_service.producer;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.order_service.event.*;
@@ -8,20 +7,25 @@ import vn.com.iuh.fit.order_service.event.*;
 @Service
 public class OrderProducer {
 
-    @Autowired
-    private KafkaTemplate<String, OrderCreatedEvent> orderCreatedKafkaTemplate;
+    private final KafkaTemplate<String, OrderCreatedEvent> orderCreatedKafkaTemplate;
+    private final KafkaTemplate<String, OrderConfirmedEvent> orderConfirmedKafkaTemplate;
+    private final KafkaTemplate<String, OrderCancelledEvent> orderCancelledKafkaTemplate;
+    private final KafkaTemplate<String, OrderShippedEvent> orderShippedKafkaTemplate;
+    private final KafkaTemplate<String, OrderDeliveredEvent> orderDeliveredKafkaTemplate;
 
-    @Autowired
-    private KafkaTemplate<String, OrderConfirmedEvent> orderConfirmedKafkaTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, OrderCancelledEvent> orderCancelledKafkaTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, OrderShippedEvent> orderShippedKafkaTemplate;
-
-    @Autowired
-    private KafkaTemplate<String, OrderDeliveredEvent> orderDeliveredKafkaTemplate;
+    public OrderProducer(
+            KafkaTemplate<String, OrderCreatedEvent> orderCreatedKafkaTemplate,
+            KafkaTemplate<String, OrderConfirmedEvent> orderConfirmedKafkaTemplate,
+            KafkaTemplate<String, OrderCancelledEvent> orderCancelledKafkaTemplate,
+            KafkaTemplate<String, OrderShippedEvent> orderShippedKafkaTemplate,
+            KafkaTemplate<String, OrderDeliveredEvent> orderDeliveredKafkaTemplate
+    ) {
+        this.orderCreatedKafkaTemplate = orderCreatedKafkaTemplate;
+        this.orderConfirmedKafkaTemplate = orderConfirmedKafkaTemplate;
+        this.orderCancelledKafkaTemplate = orderCancelledKafkaTemplate;
+        this.orderShippedKafkaTemplate = orderShippedKafkaTemplate;
+        this.orderDeliveredKafkaTemplate = orderDeliveredKafkaTemplate;
+    }
 
     public void sendOrderCreatedEvent(OrderCreatedEvent event) {
         orderCreatedKafkaTemplate.send("order-events", event);

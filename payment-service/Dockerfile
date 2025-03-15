@@ -4,7 +4,7 @@ FROM maven:3.9.4-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 
 # Copy pom.xml để cache dependencies
-COPY pom.xml .
+COPY pom.xml . 
 RUN mvn dependency:go-offline -B
 
 # Copy source code vào container
@@ -19,13 +19,13 @@ FROM eclipse-temurin:21-alpine
 WORKDIR /app
 
 # Copy file JAR đã build từ builder stage
-COPY --from=builder /app/target/order-service-0.0.1-SNAPSHOT.jar order-service.jar
+COPY --from=builder /app/target/Payment-Service-0.0.1-SNAPSHOT.jar Payment-Service.jar
 
 # Thiết lập biến môi trường để tối ưu hiệu suất Java
 ENV JAVA_OPTS="-XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
 
-# Expose cổng 8086 cho Order Service
-EXPOSE 8086
+# Expose cổng 8087 cho Payment Service
+EXPOSE 8087
 
 # Chạy ứng dụng với Java tối ưu
-CMD ["sh", "-c", "java $JAVA_OPTS -jar order-service.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar Payment-Service.jar"]
