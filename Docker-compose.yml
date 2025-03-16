@@ -102,6 +102,9 @@ services:
       SPRING_DATA_REDIS_DATABASE: 0
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
       EUREKA_INSTANCE_HOSTNAME: cart-service
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: cart-service-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
     networks:
       - microservice-net
 
@@ -212,32 +215,32 @@ services:
       EUREKA_INSTANCE_HOSTNAME: order-service
     networks:
       - microservice-net
-  # 13. Payment Service
-  payment-service:
-    container_name: payment-service
-    build:
-      context: ./payment-service
-      dockerfile: Dockerfile
-    ports:
-      - "8087:8087"
-    depends_on:
-      - eureka-service
-      - postgres
-      - kafka
-    environment:
-      SPRING_APPLICATION_NAME: payment-service
-      SERVER_PORT: 8087
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-group
-      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-      EUREKA_INSTANCE_HOSTNAME: payment-service
-    networks:
-      - microservice-net
+#  # 13. Payment Service
+#  payment-service:
+#    container_name: payment-service
+#    build:
+#      context: ./payment-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8087:8087"
+#    depends_on:
+#      - eureka-service
+#      - postgres
+#      - kafka
+#    environment:
+#      SPRING_APPLICATION_NAME: payment-service
+#      SERVER_PORT: 8087
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+#      SPRING_DATASOURCE_USERNAME: postgres
+#      SPRING_DATASOURCE_PASSWORD: password
+#      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-group
+#      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      EUREKA_INSTANCE_HOSTNAME: payment-service
+#    networks:
+#      - microservice-net
 
 
   # 14. PostgreSQL
@@ -279,6 +282,19 @@ services:
       - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - microservice-net
+  # 17. Kafka UI (Kafdrop) - Debug Kafka messages
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    depends_on:
+      - kafka
+    ports:
+      - "9002:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+      JVM_OPTS: "-Xms32M -Xmx64M"
     networks:
       - microservice-net
 

@@ -8,6 +8,8 @@ import vn.com.iuh.fit.cart_service.client.ProductClient;
 import vn.com.iuh.fit.cart_service.dto.CartItemDTO;
 import vn.com.iuh.fit.cart_service.dto.ProductDTO;
 import vn.com.iuh.fit.cart_service.entity.CartItem;
+import vn.com.iuh.fit.cart_service.event.CheckoutEvent;
+import vn.com.iuh.fit.cart_service.producer.CartProducer;
 import vn.com.iuh.fit.cart_service.repository.CartRepository;
 import vn.com.iuh.fit.cart_service.service.CartService;
 
@@ -22,13 +24,16 @@ public class CartServiceImpl implements CartService {
     private final ProductClient productClient;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final CartProducer cartProducer;
+
 
     @Autowired
-    public CartServiceImpl(CartRepository cartRepository, ProductClient productClient, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+    public CartServiceImpl(CartRepository cartRepository, ProductClient productClient, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, CartProducer cartProducer) {
         this.cartRepository = cartRepository;
         this.productClient = productClient;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.cartProducer = cartProducer;
     }
 
     @Override
@@ -121,5 +126,32 @@ public class CartServiceImpl implements CartService {
 
         cartRepository.saveCart(userId, userCart);
         cartRepository.clearCart(guestId);
+    }
+
+    @Override
+    public CheckoutEvent checkout(String userId) throws Exception {
+        String key = "cart:" + userId;
+        List<CartItemDTO> cartItems = redisTemplate.opsForHash().values(key).stream()
+                .map(json -> {
+                    try {
+                        return objectMapper.readValue((String) json, CartItemDTO.class);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                })
+                .filter(item -> item != null)
+                .collect(Collectors.toList());
+
+        if (cartItems.isEmpty()) {
+            throw new Exception("Giỏ hàng trống!");
+        }
+        double totalPrice = cartItems.stream()
+                .mapToDouble(item -> item.getPrice() * item.getRequestedQuantity())
+                .sum();
+        CheckoutEvent event = new CheckoutEvent(userId, cartItems, totalPrice);
+        cartProducer.sendCheckoutEvent(event);
+        redisTemplate.delete(key);
+        return event;
     }
 }

@@ -1,6 +1,8 @@
 package vn.com.iuh.fit.cart_service.service;
 
 import vn.com.iuh.fit.cart_service.dto.CartItemDTO;
+import vn.com.iuh.fit.cart_service.event.CheckoutEvent;
+
 import java.util.List;
 
 public interface CartService {
@@ -9,4 +11,5 @@ public interface CartService {
     void removeItem(String userId, String productId);
     void clearCart(String userId);
     void mergeGuestCartToUserCart(String guestId, String userId) throws Exception;
+    CheckoutEvent checkout(String userId) throws Exception;
 }
