@@ -67,6 +67,7 @@ services:
       - eureka-service
       - mysql
       - minio
+      - elasticsearch   # Thêm Elasticsearch để đảm bảo service chạy sau khi Elasticsearch khởi động
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -77,6 +78,7 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: musicstore
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200  # Cấu hình Elasticsearch cho Product Service
     networks:
       - microservice-net
 
@@ -295,6 +297,37 @@ services:
     environment:
       KAFKA_BROKERCONNECT: kafka:9092
       JVM_OPTS: "-Xms32M -Xmx64M"
+    networks:
+      - microservice-net
+  # 18. Elasticsearch (Search Engine)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # Tắt bảo mật để dễ dàng thử nghiệm
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - microservice-net
+
+  # 19. Kibana (Elasticsearch UI)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
     networks:
       - microservice-net
 
