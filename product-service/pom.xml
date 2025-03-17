@@ -120,6 +120,12 @@
 			<version>0.12.5</version>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- Spring Boot Elasticsearch -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>

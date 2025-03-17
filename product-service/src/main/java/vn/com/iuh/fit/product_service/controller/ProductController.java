@@ -70,7 +70,7 @@ public class ProductController {
      * @param id - ID sản phẩm
      * @param productJson - JSON chứa thông tin sản phẩm
      * @param imageFiles - Danh sách ảnh sản phẩm mới
-     * @return ProductResponse
+     * @return ProductResponseA
      */
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -103,8 +103,12 @@ public class ProductController {
      * @return List<ProductResponse>
      */
     @GetMapping("/search")
-    public ResponseEntity<List<ProductResponse>> searchProducts(@RequestParam String keyword) {
-        return ResponseEntity.ok(productService.searchProducts(keyword));
+    public ResponseEntity<List<ProductResponse>> searchProducts(
+            @RequestParam(required = false, name = "keyword") String keyword,
+            @RequestParam(required = false, name = "name") String name) {
+
+        String searchTerm = (keyword != null) ? keyword : name; // Ưu tiên keyword nếu có
+        return ResponseEntity.ok(productService.searchProducts(searchTerm));
     }
 
     /**
