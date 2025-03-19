@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 public class InventoryValidationResultEvent {
     private Long orderId;
     private String status;
+    private String message;
 }
+

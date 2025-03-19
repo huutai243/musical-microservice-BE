@@ -14,6 +14,11 @@ import vn.com.iuh.fit.inventory_service.event.ValidateInventoryEvent;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Cấu hình Kafka Consumer:
+ * Lắng nghe sự kiện "inventory-validation-events"
+ * và parse JSON thành ValidateInventoryEvent.
+ */
 @Configuration
 public class KafkaConsumerConfig {
 
@@ -21,7 +26,7 @@ public class KafkaConsumerConfig {
     private static final String GROUP_ID = "inventory-group";
 
     @Bean
-    public ConsumerFactory<String, ValidateInventoryEvent> consumerFactory() {
+    public ConsumerFactory<String, ValidateInventoryEvent> validateEventConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
@@ -29,18 +34,21 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
         JsonDeserializer<ValidateInventoryEvent> jsonDeserializer = new JsonDeserializer<>(ValidateInventoryEvent.class);
-        jsonDeserializer.addTrustedPackages("*");  // Chấp nhận tất cả
+        jsonDeserializer.addTrustedPackages("*");
         jsonDeserializer.setRemoveTypeHeaders(false);
         jsonDeserializer.setUseTypeMapperForKey(false);
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
+        return new DefaultKafkaConsumerFactory<>(
+                props,
+                new StringDeserializer(),
+                new ErrorHandlingDeserializer<>(jsonDeserializer)
+        );
     }
 
-
     @Bean(name = "validateInventoryEventListenerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, ValidateInventoryEvent> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, ValidateInventoryEvent> inventoryListenerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, ValidateInventoryEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(validateEventConsumerFactory());
         return factory;
     }
 }

@@ -9,14 +9,16 @@ import vn.com.iuh.fit.cart_service.event.CheckoutEvent;
 @Service
 public class CartProducer {
     private static final Logger LOGGER = LoggerFactory.getLogger(CartProducer.class);
-    private final KafkaTemplate<String, CheckoutEvent> kafkaTemplate;
 
-    public CartProducer(KafkaTemplate<String, CheckoutEvent> kafkaTemplate) {
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    public CartProducer(KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
     public void sendCheckoutEvent(CheckoutEvent event) {
         kafkaTemplate.send("checkout-events", event);
-        LOGGER.info(" Đã gửi CheckoutEvent đến Kafka: [eventId={}, userId={}]", event.getEventId(), event.getUserId());
+        LOGGER.info("Đã gửi CheckoutEvent đến Kafka: [eventId={}, userId={}]", event.getEventId(), event.getUserId());
     }
 }
+
