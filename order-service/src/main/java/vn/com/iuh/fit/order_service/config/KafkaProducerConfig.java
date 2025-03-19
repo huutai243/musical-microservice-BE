@@ -19,12 +19,11 @@ public class KafkaProducerConfig {
 
     private Map<String, Object> producerConfigs() {
         Map<String, Object> configProps = new HashMap<>();
-        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
         // Exactly Once Processing
-        configProps.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "order-tx");
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
         configProps.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);

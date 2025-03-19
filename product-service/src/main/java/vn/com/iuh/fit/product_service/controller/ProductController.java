@@ -60,11 +60,8 @@ public class ProductController {
             @RequestParam("images") List<MultipartFile> imageFiles) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
-
         return ResponseEntity.ok(productService.addProductWithImages(productRequest, imageFiles));
     }
-
-
     /**
      * API cập nhật sản phẩm kèm với ảnh mới (nếu có)
      * @param id - ID sản phẩm

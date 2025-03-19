@@ -1,5 +1,6 @@
 package vn.com.iuh.fit.cart_service.service.impl;
 
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -136,7 +137,6 @@ public class CartServiceImpl implements CartService {
                     try {
                         return objectMapper.readValue((String) json, CartItemDTO.class);
                     } catch (Exception e) {
-                        e.printStackTrace();
                         return null;
                     }
                 })
@@ -144,14 +144,24 @@ public class CartServiceImpl implements CartService {
                 .collect(Collectors.toList());
 
         if (cartItems.isEmpty()) {
-            throw new Exception("Giỏ hàng trống!");
+            throw new Exception(" Giỏ hàng trống!");
         }
+
         double totalPrice = cartItems.stream()
                 .mapToDouble(item -> item.getPrice() * item.getRequestedQuantity())
                 .sum();
-        CheckoutEvent event = new CheckoutEvent(userId, cartItems, totalPrice);
+        CheckoutEvent event = new CheckoutEvent(
+                java.util.UUID.randomUUID().toString(),
+                userId,
+                cartItems,
+                totalPrice,
+                "PENDING",
+                System.currentTimeMillis(),
+                java.util.UUID.randomUUID().toString()
+        );
         cartProducer.sendCheckoutEvent(event);
         redisTemplate.delete(key);
         return event;
     }
+
 }

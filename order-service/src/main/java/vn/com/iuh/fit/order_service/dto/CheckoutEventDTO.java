@@ -1,18 +1,16 @@
-package vn.com.iuh.fit.cart_service.event;
+package vn.com.iuh.fit.order_service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import vn.com.iuh.fit.cart_service.dto.CartItemDTO;
-
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CheckoutEvent {
+public class CheckoutEventDTO {
     private String eventId;
     private String userId;
     private List<CartItemDTO> items;

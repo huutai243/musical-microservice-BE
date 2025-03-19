@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.service.OrderService;
-import vn.com.iuh.fit.order_service.dto.OrderRequestDTO;
 
 import java.security.Principal;
 import java.util.List;
@@ -23,14 +23,9 @@ public class OrderController {
      */
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping("/create")
-    public ResponseEntity<Order> createOrder(@RequestBody OrderRequestDTO orderRequest) {
-        Order order = orderService.createOrder(
-                orderRequest.getUserId(),
-                orderRequest.getProductId(),
-                orderRequest.getQuantity(),
-                orderRequest.getPrice()
-        );
-        return ResponseEntity.ok(order);
+    public ResponseEntity<Void> createOrder(@RequestBody CheckoutEventDTO checkoutEvent) {
+        orderService.createOrderFromCheckout(checkoutEvent);
+        return ResponseEntity.ok().build();
     }
 
     /**

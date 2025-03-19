@@ -1,4 +1,4 @@
-package vn.com.iuh.fit.cart_service.config;
+package vn.com.iuh.fit.inventory_service.config;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -8,26 +8,25 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-import vn.com.iuh.fit.cart_service.event.CheckoutEvent;
+import vn.com.iuh.fit.inventory_service.event.InventoryValidationResultEvent;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
 public class KafkaProducerConfig {
+
     @Bean
-    public ProducerFactory<String, CheckoutEvent> producerFactory() {
+    public ProducerFactory<String, InventoryValidationResultEvent> producerFactory() {
         Map<String, Object> config = new HashMap<>();
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-
         return new DefaultKafkaProducerFactory<>(config);
     }
 
     @Bean
-    public KafkaTemplate<String, CheckoutEvent> kafkaTemplate() {
+    public KafkaTemplate<String, InventoryValidationResultEvent> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 }

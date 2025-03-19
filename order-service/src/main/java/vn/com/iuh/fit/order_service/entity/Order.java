@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -19,11 +20,11 @@ public class Order {
     private Long id;
 
     private String userId;
-    private String productId;
-    private Integer quantity;
-    private Double price;
-
-    private String status; // "PENDING", "CONFIRMED", "CANCELLED"
+    private Double totalPrice;
+    private String status; // PENDING, VALIDATING_INVENTORY, CONFIRMED, CANCELLED
 
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items;
 }
