@@ -5,11 +5,11 @@ import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.inventory_service.dto.InventoryValidationItem;
 import vn.com.iuh.fit.inventory_service.entity.Inventory;
 import vn.com.iuh.fit.inventory_service.event.InventoryValidationResultEvent;
-import vn.com.iuh.fit.inventory_service.event.ValidateInventoryEvent;
 import vn.com.iuh.fit.inventory_service.producer.InventoryProducer;
 import vn.com.iuh.fit.inventory_service.repository.InventoryRepository;
 import vn.com.iuh.fit.inventory_service.service.InventoryService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -45,25 +45,59 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public void validateInventory(Long orderId, List<InventoryValidationItem> items) {
-        boolean allAvailable = true;
-        StringBuilder message = new StringBuilder("Sản phẩm thiếu hàng: ");
+        List<InventoryValidationResultEvent.Item> validatedItems = new ArrayList<>();
 
         for (InventoryValidationItem item : items) {
-            int availableStock = getStock(item.getProductId()); // Kiểm tra tồn kho
-            if (availableStock < item.getQuantity()) {
-                allAvailable = false;
-                message.append("ProductID: ").append(item.getProductId()).append(" (Còn: ")
-                        .append(availableStock).append(", Cần: ").append(item.getQuantity()).append("); ");
+            Inventory inventory = inventoryRepository.findByProductId(item.getProductId()).orElse(null);
+            if (inventory == null || inventory.getQuantity() < item.getQuantity()) {
+                validatedItems.add(new InventoryValidationResultEvent.Item(
+                        item.getProductId().toString(),
+                        item.getQuantity(),
+                        inventory != null ? inventory.getQuantity() : 0,
+                        "OUT_OF_STOCK"
+                ));
+
+                if (inventory != null) {
+                    inventory.setQuantity(0);
+                    inventoryRepository.save(inventory);
+                }
+            } else {
+                // Trừ số lượng sản phẩm khỏi kho
+                inventory.setQuantity(inventory.getQuantity() - item.getQuantity());
+                inventoryRepository.save(inventory);
+
+                validatedItems.add(new InventoryValidationResultEvent.Item(
+                        item.getProductId().toString(),
+                        item.getQuantity(),
+                        inventory.getQuantity(),
+                        "CONFIRMED"
+                ));
             }
         }
 
-        String status = allAvailable ? "VALIDATED" : "REJECTED";
-        String finalMessage = allAvailable ? "Tồn kho hợp lệ." : message.toString();
+        // Xác định trạng thái đơn hàng
+        String status;
+        String message;
 
-        // Gửi kết quả kiểm tra tồn kho đến `order-service`
-        inventoryProducer.sendInventoryValidationResult(new InventoryValidationResultEvent(orderId, status, finalMessage));
+        boolean allItemsOutOfStock = validatedItems.stream()
+                .allMatch(item -> "OUT_OF_STOCK".equals(item.getStatus()));
+
+        if (validatedItems.stream().noneMatch(item -> "OUT_OF_STOCK".equals(item.getStatus()))) {
+            status = "VALIDATED";
+            message = "Tồn kho hợp lệ.";
+        } else if (allItemsOutOfStock) {
+            status = "REJECTED";
+            message = "Toàn bộ sản phẩm trong đơn hàng đã hết hàng.";
+        } else {
+            status = "PARTIALLY_VALIDATED";
+            message = "Một số sản phẩm trong đơn hàng không đủ số lượng.";
+        }
+
+        // Gửi kết quả kiểm tra tồn kho về `order-service`
+        inventoryProducer.sendInventoryValidationResult(
+                new InventoryValidationResultEvent(orderId, status, message, validatedItems)
+        );
     }
-
 
 
     @Override

@@ -20,5 +20,6 @@ public class ValidateInventoryEvent {
     public static class Item {
         private String productId;
         private Integer quantity;
+        private String status;
     }
 }

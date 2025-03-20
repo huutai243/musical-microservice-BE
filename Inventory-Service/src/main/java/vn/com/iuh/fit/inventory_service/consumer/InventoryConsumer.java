@@ -28,18 +28,21 @@ public class InventoryConsumer {
     )
     public void processInventoryValidation(ValidateInventoryEvent event) {
         try {
-            log.info("Nhận yêu cầu kiểm tra tồn kho từ `order-service` cho đơn hàng #{}", event.getOrderId());
-
-            // Chuyển ValidateInventoryEvent.Item → InventoryValidationItem
+            log.info(" Nhận yêu cầu kiểm tra tồn kho từ `Order-Service` - Đơn hàng #{}", event.getOrderId());
             List<InventoryValidationItem> items = event.getItems().stream()
                     .map(item -> {
                         try {
-                            return new InventoryValidationItem(
-                                    Long.parseLong(item.getProductId()),
-                                    item.getQuantity()
-                            );
+                            Long productId = Long.parseLong(item.getProductId());
+
+                            if (item.getQuantity() <= 0) {
+                                log.warn(" Số lượng sản phẩm `{}` không hợp lệ: {}", productId, item.getQuantity());
+                                return null;
+                            }
+
+                            return new InventoryValidationItem(productId, item.getQuantity());
+
                         } catch (NumberFormatException e) {
-                            log.error(" Lỗi chuyển productId '{}' - không phải số hợp lệ!", item.getProductId(), e);
+                            log.error(" Lỗi chuyển đổi productId `{}`: Không phải số hợp lệ!", item.getProductId(), e);
                             return null;
                         }
                     })
@@ -47,7 +50,6 @@ public class InventoryConsumer {
                     .collect(Collectors.toList());
 
             if (!items.isEmpty()) {
-                // Gọi Service kiểm tra tồn kho
                 inventoryService.validateInventory(event.getOrderId(), items);
             } else {
                 log.warn(" Không có sản phẩm hợp lệ để kiểm tra tồn kho cho đơn hàng #{}", event.getOrderId());
@@ -57,3 +59,4 @@ public class InventoryConsumer {
         }
     }
 }
+

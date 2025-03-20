@@ -2,6 +2,7 @@ package vn.com.iuh.fit.order_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.com.iuh.fit.order_service.enums.OrderStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,7 +22,9 @@ public class Order {
 
     private String userId;
     private Double totalPrice;
-    private String status; // PENDING, VALIDATING_INVENTORY, CONFIRMED, CANCELLED
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
 
     private LocalDateTime createdAt;
 

@@ -45,12 +45,7 @@ public class OrderConsumer {
     public void processInventoryValidationResult(InventoryValidationResultEvent event) {
         try {
             LOGGER.info(" Nhận kết quả kiểm tra tồn kho từ Kafka: {}", event);
-
-            if ("VALIDATED".equals(event.getStatus())) {
-                orderService.confirmOrder(event.getOrderId());
-            } else {
-                orderService.cancelOrder(event.getOrderId());
-            }
+            orderService.handleInventoryValidationResult(event);
         } catch (Exception e) {
             LOGGER.error(" Lỗi khi xử lý kết quả kiểm tra tồn kho: ", e);
         }

@@ -2,6 +2,7 @@ package vn.com.iuh.fit.order_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 
 @Entity
 @Table(name = "order_items")
@@ -25,4 +26,7 @@ public class OrderItem {
     private Double price;
     private Integer quantity;
     private String imageUrl;
+
+    @Enumerated(EnumType.STRING) // Trạng thái riêng cho từng sản phẩm
+    private OrderItemStatus status;
 }
