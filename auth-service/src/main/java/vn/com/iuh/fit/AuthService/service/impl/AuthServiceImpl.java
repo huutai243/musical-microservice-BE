@@ -46,13 +46,16 @@ public class AuthServiceImpl implements AuthService {
         if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
             throw new RuntimeException("Sai tên đăng nhập hoặc mật khẩu.");
         }
+        User user = userOpt.get();
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("Email chưa được xác thực. Vui lòng kiểm tra email để kích hoạt tài khoản.");
+        }
 
         // Xác thực user
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        User user = userOpt.get();
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 

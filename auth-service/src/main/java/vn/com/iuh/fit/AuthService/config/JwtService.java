@@ -34,7 +34,7 @@ public class JwtService {
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
         this.userRepository = userRepository;
-        this.jwtParser = Jwts.parser().setSigningKey(secretKey).build(); // ✅ Fix
+        this.jwtParser = Jwts.parser().setSigningKey(secretKey).build();
     }
 
     /**
