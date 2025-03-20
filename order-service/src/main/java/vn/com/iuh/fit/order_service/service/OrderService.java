@@ -4,11 +4,13 @@ import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
 import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
+import vn.com.iuh.fit.order_service.event.PaymentResultEvent;
 
 import java.util.List;
 
 public interface OrderService {
     void handleInventoryValidationResult(InventoryValidationResultEvent event);
+    void handlePaymentResult(PaymentResultEvent event);
     void createOrderFromCheckout(CheckoutEventDTO checkoutEvent);
     void confirmOrder(Long orderId);
     void cancelOrder(Long orderId);

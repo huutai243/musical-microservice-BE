@@ -8,5 +8,7 @@ public enum OrderStatus {
     PENDING_CUSTOMER_ACTION,      // Chờ khách hàng xử lý (ví dụ: chọn sản phẩm thay thế)
     CANCELLED,                    // Đơn hàng bị hủy hoàn toàn
     SHIPPED,                      // Đã gửi hàng
-    DELIVERED                     // Đã giao hàng thành công
+    DELIVERED ,
+    PAYMENT_SUCCESS,
+    PAYMENT_FAILED
 }

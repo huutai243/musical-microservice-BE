@@ -2,6 +2,7 @@ package vn.com.iuh.fit.payment_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.com.iuh.fit.payment_service.enums.PaymentStatus;
 
 import java.time.LocalDateTime;
 
@@ -20,7 +21,10 @@ public class Payment {
     private Long orderId;
     private String userId;
     private Double amount;
-    private String paymentMethod; // STRIPE, VNPAY, MOMO, PAYPAL
-    private String status; // PENDING, SUCCESS, FAILED
+    private String paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus status;
+
     private LocalDateTime createdAt;
 }

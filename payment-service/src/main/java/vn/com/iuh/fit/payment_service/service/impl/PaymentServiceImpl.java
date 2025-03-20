@@ -6,8 +6,12 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.payment_service.dto.PaymentRequestDTO;
 import vn.com.iuh.fit.payment_service.entity.Payment;
-import vn.com.iuh.fit.payment_service.event.PaymentConfirmedEvent;
-import vn.com.iuh.fit.payment_service.gateway.*;
+import vn.com.iuh.fit.payment_service.enums.PaymentStatus;
+import vn.com.iuh.fit.payment_service.event.PaymentResultEvent;
+import vn.com.iuh.fit.payment_service.gateway.PayPalPaymentGateway;
+import vn.com.iuh.fit.payment_service.gateway.PaymentGateway;
+import vn.com.iuh.fit.payment_service.gateway.StripePaymentGateway;
+import vn.com.iuh.fit.payment_service.producer.PaymentProducer;
 import vn.com.iuh.fit.payment_service.repository.PaymentRepository;
 import vn.com.iuh.fit.payment_service.service.PaymentService;
 
@@ -24,6 +28,8 @@ public class PaymentServiceImpl implements PaymentService {
     @Autowired private KafkaTemplate<String, Object> kafkaTemplate;
     @Autowired private StripePaymentGateway stripePaymentGateway;
     @Autowired private PayPalPaymentGateway paypalPaymentGateway;
+    @Autowired private PaymentProducer paymentProducer;
+
 
     @Override
     @Transactional
@@ -43,8 +49,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         boolean success = gateway.processPayment(paymentRequest);
-        String status = success ? "SUCCESS" : "FAILED";
-
+        PaymentStatus status = success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
         Payment payment = Payment.builder()
                 .orderId(paymentRequest.getOrderId())
                 .userId(paymentRequest.getUserId())
@@ -56,10 +61,11 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
 
-        kafkaTemplate.executeInTransaction(kafka -> {
-            kafka.send("payment-events", new PaymentConfirmedEvent(payment.getId(), payment.getOrderId(), payment.getUserId(), status));
-            return null;
-        });
+        paymentProducer.sendPaymentResultEvent(new PaymentResultEvent(
+                payment.getOrderId(),
+                success,
+                success ? " Thanh toán thành công" : " Thanh toán thất bại")
+        );
 
         return payment;
     }
@@ -70,17 +76,15 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException(" Không tìm thấy giao dịch cần hoàn tiền"));
 
-        if (!"SUCCESS".equals(payment.getStatus())) {
+        if (!PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
             throw new IllegalStateException(" Chỉ có thể hoàn tiền cho các giao dịch thành công!");
         }
 
-        payment.setStatus("REFUNDED");
+        payment.setStatus(PaymentStatus.REFUNDED);
         paymentRepository.save(payment);
 
-        kafkaTemplate.executeInTransaction(kafka -> {
-            kafka.send("payment-events", new PaymentConfirmedEvent(payment.getId(), payment.getOrderId(), payment.getUserId(), "REFUNDED"));
-            return null;
-        });
+        kafkaTemplate.send("payment-events",
+                new PaymentResultEvent(payment.getOrderId(), true, " Hoàn tiền thành công!"));
 
         log.info(" Hoàn tiền thành công cho Payment ID: " + paymentId);
     }

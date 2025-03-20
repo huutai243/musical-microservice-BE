@@ -9,6 +9,7 @@ import vn.com.iuh.fit.order_service.entity.OrderItem;
 import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
 import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
+import vn.com.iuh.fit.order_service.event.PaymentResultEvent;
 import vn.com.iuh.fit.order_service.event.ValidateInventoryEvent;
 import vn.com.iuh.fit.order_service.producer.OrderProducer;
 import vn.com.iuh.fit.order_service.repository.OrderItemRepository;
@@ -127,6 +128,24 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
     }
 
+    @Override
+    @Transactional
+    public void handlePaymentResult(PaymentResultEvent event) {
+        log.info(" Xử lý kết quả thanh toán cho đơn hàng #{}", event.getOrderId());
+
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(() -> new RuntimeException(" Không tìm thấy đơn hàng #" + event.getOrderId()));
+
+        if (event.isSuccess()) {
+            order.setStatus(OrderStatus.PAYMENT_SUCCESS);
+            log.info(" Đơn hàng #{} thanh toán thành công. Chuyển sang trạng thái PAYMENT_SUCCESS.", order.getId());
+        } else {
+            order.setStatus(OrderStatus.PAYMENT_FAILED);
+            log.info(" Đơn hàng #{} thanh toán thất bại. Chuyển sang trạng thái PAYMENT_FAILED.", order.getId());
+        }
+
+        orderRepository.save(order);
+    }
 
 
     /**

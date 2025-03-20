@@ -7,6 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
+import vn.com.iuh.fit.order_service.event.PaymentResultEvent;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
 @Service
@@ -50,6 +51,21 @@ public class OrderConsumer {
             LOGGER.error(" Lỗi khi xử lý kết quả kiểm tra tồn kho: ", e);
         }
     }
+
+    @KafkaListener(
+            topics = "payment-result-event",
+            groupId = "order-group-payment",
+            containerFactory = "paymentResultListenerFactory"
+    )
+    public void processPaymentResultEvent(PaymentResultEvent event) {
+        try {
+            LOGGER.info("📥 Nhận kết quả thanh toán từ Kafka: {}", event);
+            orderService.handlePaymentResult(event);
+        } catch (Exception e) {
+            LOGGER.error(" Lỗi khi xử lý kết quả thanh toán: ", e);
+        }
+    }
+
 
 }
 

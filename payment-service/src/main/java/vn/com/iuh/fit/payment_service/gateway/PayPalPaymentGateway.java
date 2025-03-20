@@ -21,13 +21,12 @@ public class PayPalPaymentGateway implements PaymentGateway {
 
     @Override
     public boolean processPayment(PaymentRequestDTO paymentRequest) {
-        log.info(" Xử lý thanh toán qua PayPal cho đơn hàng #" + paymentRequest.getOrderId());
+        log.info(" Thanh toán PayPal thành công cho đơn hàng #" + paymentRequest.getOrderId());
         return true;
     }
 
     @Override
     public String generatePaymentUrl(PaymentRequestDTO paymentRequest) {
-        log.info(" Tạo URL thanh toán PayPal cho đơn hàng #" + paymentRequest.getOrderId());
-        return baseUrl + "/checkout?amount=" + paymentRequest.getAmount();
+        return baseUrl + "/checkout?amount=" + paymentRequest.getAmount() + "&orderId=" + paymentRequest.getOrderId();
     }
 }
