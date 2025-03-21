@@ -3,8 +3,7 @@
 
 version: "3.8"
 
-services:
-  # 1. Eureka Service (Service Discovery)
+services:  # 1. Eureka Service
   eureka-service:
     container_name: eureka-service
     build:
@@ -15,7 +14,7 @@ services:
     networks:
       - microservice-net
 
-  # 2. API Gateway (Spring Cloud Gateway)
+  # 2. API Gateway
   api-gateway:
     container_name: api-gateway
     build:
@@ -35,7 +34,7 @@ services:
     networks:
       - microservice-net
 
-  # 3. Auth Service (Xác thực người dùng)
+  # 3. Auth Service
   auth-service:
     container_name: auth-service
     build:
@@ -55,7 +54,7 @@ services:
     networks:
       - microservice-net
 
-  # 4. Product Service (Quản lý sản phẩm)
+  # 4. Product Service
   product-service:
     container_name: product-service
     build:
@@ -67,7 +66,8 @@ services:
       - eureka-service
       - mysql
       - minio
-      - elasticsearch   # Thêm Elasticsearch để đảm bảo service chạy sau khi Elasticsearch khởi động
+      - elasticsearch
+    restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -78,11 +78,11 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: musicstore
-      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200  # Cấu hình Elasticsearch cho Product Service
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
     networks:
       - microservice-net
 
-  # 5. Cart Service (Quản lý giỏ hàng)
+  # 5. Cart Service
   cart-service:
     container_name: cart-service
     build:
@@ -110,7 +110,7 @@ services:
     networks:
       - microservice-net
 
-  # 7. Inventory Service (Quản lý tồn kho)
+  # 7. Inventory Service
   inventory-service:
     container_name: inventory-service
     build:
@@ -134,7 +134,7 @@ services:
     networks:
       - microservice-net
 
-  # 8. User Service (Quản lý thông tin cá nhân)
+  # 8. User Service
   user-service:
     container_name: user-service
     build:
@@ -168,7 +168,7 @@ services:
     networks:
       - microservice-net
 
-  # 10. MinIO (Lưu trữ ảnh sản phẩm)
+  # 10. MinIO
   minio:
     container_name: minio
     image: quay.io/minio/minio
@@ -184,7 +184,7 @@ services:
     networks:
       - microservice-net
 
-  # 11. Redis (Caching & Rate Limiting)
+  # 11. Redis
   redis:
     image: redis:7.2
     container_name: redis
@@ -258,7 +258,7 @@ services:
       test: [ "CMD", "echo", "ruok", "|", "nc", "localhost", "2181" ]
       interval: 10s
       retries: 5
-  # 17. Kafka UI (Kafdrop) - Debug Kafka messages
+  # 17. Kafka UI
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
@@ -271,7 +271,7 @@ services:
       JVM_OPTS: "-Xms32M -Xmx64M"
     networks:
       - microservice-net
-  # 18. Elasticsearch (Search Engine)
+  # 18. Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: elasticsearch
@@ -289,8 +289,7 @@ services:
       - "9300:9300"
     networks:
       - microservice-net
-
-  # 19. Kibana (Elasticsearch UI)
+  # 19. Kibana
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.0
     container_name: kibana
