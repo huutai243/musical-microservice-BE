@@ -11,6 +11,7 @@ import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
+import vn.com.iuh.fit.order_service.event.PaymentResultEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,4 +62,25 @@ public class KafkaConsumerConfig {
         factory.setConsumerFactory(inventoryValidationResultConsumerFactory());
         return factory;
     }
+
+    @Bean
+    public ConsumerFactory<String, PaymentResultEvent> paymentResultConsumerFactory() {
+        JsonDeserializer<PaymentResultEvent> deserializer = new JsonDeserializer<>(PaymentResultEvent.class);
+        deserializer.addTrustedPackages("*");
+
+        return new DefaultKafkaConsumerFactory<>(
+                commonConsumerConfig(),
+                new StringDeserializer(),
+                new ErrorHandlingDeserializer<>(deserializer)
+        );
+    }
+
+    @Bean(name = "paymentResultListenerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, PaymentResultEvent> paymentResultListenerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, PaymentResultEvent> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(paymentResultConsumerFactory());
+        return factory;
+    }
+
 }
