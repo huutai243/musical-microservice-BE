@@ -10,9 +10,6 @@ public class PaymentRequestDTO {
     @NotNull
     private Long orderId;
 
-    @NotBlank
-    private String userId;
-
     @NotNull
     @Min(1)
     private Double amount;

@@ -52,7 +52,6 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentStatus status = success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
         Payment payment = Payment.builder()
                 .orderId(paymentRequest.getOrderId())
-                .userId(paymentRequest.getUserId())
                 .amount(paymentRequest.getAmount())
                 .paymentMethod(paymentRequest.getPaymentMethod())
                 .status(status)

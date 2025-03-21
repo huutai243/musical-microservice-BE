@@ -221,7 +221,34 @@ services:  # 1. Eureka Service
     networks:
       - microservice-net
 
-  # 15. Kafka Broker
+  # 13.Payment Service
+#  payment-service:
+#    container_name: payment-service
+#    build:
+#      context: ./payment-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8087:8087"
+#    depends_on:
+#      - eureka-service
+#      - mysql
+#      - kafka
+#    environment:
+#      SPRING_APPLICATION_NAME: payment-service
+#      SERVER_PORT: 8087
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: root
+#      SPRING_DATASOURCE_PASSWORD: password
+#      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-group
+#      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+#      EUREKA_INSTANCE_HOSTNAME: payment-service
+#    networks:
+#      - microservice-net
+
+  # 14. Kafka Broker
   kafka:
     image: confluentinc/cp-kafka:7.2.2
     container_name: kafka
@@ -243,7 +270,7 @@ services:  # 1. Eureka Service
       test: [ "CMD", "kafka-topics", "--list", "--bootstrap-server", "kafka:9092" ]
       interval: 10s
       retries: 5
-  # 16. Zookeeper
+  # 15. Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.2
     container_name: zookeeper
@@ -258,7 +285,7 @@ services:  # 1. Eureka Service
       test: [ "CMD", "echo", "ruok", "|", "nc", "localhost", "2181" ]
       interval: 10s
       retries: 5
-  # 17. Kafka UI
+  # 16. Kafka UI
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
@@ -271,7 +298,7 @@ services:  # 1. Eureka Service
       JVM_OPTS: "-Xms32M -Xmx64M"
     networks:
       - microservice-net
-  # 18. Elasticsearch
+  # 17. Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: elasticsearch
@@ -289,7 +316,7 @@ services:  # 1. Eureka Service
       - "9300:9300"
     networks:
       - microservice-net
-  # 19. Kibana
+  # 18. Kibana
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.0
     container_name: kibana
