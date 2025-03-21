@@ -96,17 +96,35 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public UserDto register(RegisterRequest request) {
-        // Kiểm tra xem tên đăng nhập đã tồn tại chưa
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
-        }
-
         // Kiểm tra xem email đã tồn tại chưa
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email đã tồn tại");
+        Optional<User> existingUserOpt = userRepository.findByEmail(request.getEmail());
+
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+
+            if (!existingUser.isEmailVerified()) {
+                // Kiểm tra xem có token xác thực nào chưa hết hạn không
+                Optional<SecureToken> existingTokenOpt = secureTokenRepository.findByUser(existingUser);
+
+                if (existingTokenOpt.isPresent()) {
+                    SecureToken existingToken = existingTokenOpt.get();
+
+                    // Nếu token chưa hết hạn (trong vòng 60s), chỉ yêu cầu người dùng vào mail xác nhận
+                    if (!existingToken.isExpired() && existingToken.getCreatedAt().plusSeconds(60).isAfter(LocalDateTime.now())) {
+                        throw new IllegalArgumentException("Email đã tồn tại nhưng chưa xác thực. Vui lòng kiểm tra email để xác nhận.");
+                    } else {
+                        // Nếu token đã hết hạn, tạo token mới và gửi lại email xác thực
+                        secureTokenRepository.delete(existingToken);
+                        sendVerificationEmail(existingUser);
+                        throw new IllegalArgumentException("Email đã tồn tại nhưng chưa xác thực. Email xác thực mới đã được gửi.");
+                    }
+                }
+            }
+
+            throw new IllegalArgumentException("Email đã tồn tại.");
         }
 
-        // Lấy vai trò mặc định "ROLE_USER"
+        // Tạo tài khoản mới nếu email chưa tồn tại
         Role defaultRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new RuntimeException("Vai trò mặc định không tồn tại"));
 
@@ -121,6 +139,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         userRepository.save(user);
+
         // Gửi thông tin sang user-service để lưu vào user_db
         UserRequest userRequest = new UserRequest(user.getId(), user.getUsername(), user.getEmail());
         userServiceClient.createUser(userRequest);
@@ -130,7 +149,6 @@ public class AuthServiceImpl implements AuthService {
 
         return new UserDto(user.getUsername(), user.getEmail(), false);
     }
-
 
     /**
      * 🛠 **Quên mật khẩu**
@@ -189,7 +207,7 @@ public class AuthServiceImpl implements AuthService {
         String tokenValue = UUID.randomUUID().toString();
         token.setToken(tokenValue);
         token.setUser(user);
-        token.setExpiresAt(LocalDateTime.now().plusHours(24));
+        token.setExpiresAt(LocalDateTime.now().plusSeconds(60));
         secureTokenRepository.save(token);
         String verificationLink = "http://localhost:3000/verify-email?token=" + tokenValue;
         String emailBody = "Vui lòng nhấn vào link sau để xác thực email: <a href=\"" + verificationLink + "\">Click here</a>";

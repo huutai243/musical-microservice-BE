@@ -7,8 +7,10 @@ import vn.com.iuh.fit.product_service.dto.ProductRequest;
 import vn.com.iuh.fit.product_service.dto.ProductResponse;
 import vn.com.iuh.fit.product_service.entity.Product;
 import vn.com.iuh.fit.product_service.entity.Category;
+import vn.com.iuh.fit.product_service.entity.ProductDocument;
 import vn.com.iuh.fit.product_service.entity.ProductImage;
 import vn.com.iuh.fit.product_service.repository.CategoryRepository;
+import vn.com.iuh.fit.product_service.repository.ProductElasticsearchRepository;
 import vn.com.iuh.fit.product_service.repository.ProductRepository;
 import vn.com.iuh.fit.product_service.repository.ProductImageRepository;
 import vn.com.iuh.fit.product_service.service.FileStorageService;
@@ -33,6 +35,9 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductImageRepository productImageRepository;
 
+    @Autowired
+    private ProductElasticsearchRepository productElasticsearchRepository;
+
     // 1 LẤY DANH SÁCH SẢN PHẨM
     @Override
     public List<ProductResponse> getAllProducts() {
@@ -52,9 +57,11 @@ public class ProductServiceImpl implements ProductService {
     // 2 THÊM SẢN PHẨM (HỖ TRỢ NHIỀU ẢNH)
     @Override
     public ProductResponse addProductWithImages(ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception {
+        // 🔹 Lấy danh mục từ DB
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
+        // 🔹 Tạo sản phẩm mới
         Product product = Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
@@ -62,9 +69,10 @@ public class ProductServiceImpl implements ProductService {
                 .category(category)
                 .build();
 
+        // 🔹 Lưu sản phẩm vào MySQL
         product = productRepository.save(product);
 
-        // Upload ảnh lên MinIO và lưu vào `ProductImage`
+        // 🔹 Upload ảnh lên MinIO & lưu vào `ProductImage`
         List<String> imageUrls = fileStorageService.uploadFiles(imageFiles);
         List<ProductImage> imageEntities = new ArrayList<>();
 
@@ -73,11 +81,24 @@ public class ProductServiceImpl implements ProductService {
             imageEntities.add(productImageRepository.save(productImage));
         }
 
-        // Cập nhật lại danh sách images cho product
+        // 🔹 Cập nhật danh sách hình ảnh vào sản phẩm
         product.setImages(imageEntities);
+
+        // ✅ Cập nhật vào Elasticsearch (Lưu cả danh sách ảnh)
+        ProductDocument productDocument = ProductDocument.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .categoryId(product.getCategory().getId()) // ✅ Lưu categoryId
+                .imageUrls(imageUrls) // ✅ Lưu danh sách ảnh
+                .build();
+
+        productElasticsearchRepository.save(productDocument);
 
         return convertToResponse(product);
     }
+
 
     // 3 CẬP NHẬT SẢN PHẨM (THAY ẢNH MỚI)
     @Override
@@ -119,26 +140,25 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
+        // Lấy danh sách ảnh của sản phẩm
         List<ProductImage> images = productImageRepository.findByProductId(id);
         List<String> imageUrls = images.stream().map(ProductImage::getImageUrl).toList();
 
+        // Xóa ảnh khỏi bộ lưu trữ
         fileStorageService.deleteFiles(imageUrls);
         productImageRepository.deleteAll(images);
+
+        // Xóa dữ liệu sản phẩm khỏi Elasticsearch
+        productElasticsearchRepository.deleteById(id);
+
+        // Xóa sản phẩm khỏi MySQL
         productRepository.deleteById(id);
     }
 
     // 5 LỌC SẢN PHẨM
     @Override
     public List<ProductResponse> getProductsByCategory(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId)
-                .stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ProductResponse> searchProducts(String keyword) {
-        return productRepository.findByNameContainingIgnoreCase(keyword)
+        return productElasticsearchRepository.findByCategoryId(categoryId)
                 .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
@@ -146,11 +166,40 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> filterProductsByPrice(double minPrice, double maxPrice) {
-        return productRepository.findByPriceBetween(minPrice, maxPrice)
-                .stream()
+        List<ProductDocument> products = productElasticsearchRepository.findByPriceBetween(minPrice, maxPrice);
+
+        return products.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
+
+    private ProductResponse convertToResponse(ProductDocument productDocument) {
+        return ProductResponse.builder()
+                .id(productDocument.getId())
+                .name(productDocument.getName())
+                .description(productDocument.getDescription())
+                .price(productDocument.getPrice())
+                .categoryId(productDocument.getCategoryId()) // ✅ Lấy categoryId thay vì categoryName
+                .imageUrls(productDocument.getImageUrls()) // ✅ Lấy danh sách ảnh từ Elasticsearch
+                .build();
+    }
+
+
+    @Override
+    public List<ProductResponse> searchProducts(String keyword) {
+        List<ProductDocument> productDocuments = productElasticsearchRepository.findByNameContainingIgnoreCase(keyword);
+        return productDocuments.stream()
+                .map(doc -> ProductResponse.builder()
+                        .id(doc.getId())
+                        .name(doc.getName())
+                        .description(doc.getDescription())
+                        .price(doc.getPrice())
+                        .categoryId(doc.getCategoryId()) // ✅ Thêm categoryId
+                        .imageUrls(doc.getImageUrls())   // ✅ Thêm danh sách imageUrls
+                        .build())
+                .collect(Collectors.toList());
+    }
+
 
     // 6 PHÂN TRANG & SẮP XẾP
     @Override
@@ -190,7 +239,7 @@ public class ProductServiceImpl implements ProductService {
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-                .categoryName(product.getCategory().getName())
+                .categoryId(product.getCategory().getId())
                 .imageUrls(imageUrls)
                 .build();
     }
