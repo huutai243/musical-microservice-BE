@@ -121,6 +121,7 @@ services:  # 1. Eureka Service
     depends_on:
       - eureka-service
       - mysql
+    restart: on-failure
     environment:
       SPRING_APPLICATION_NAME: inventory-service
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/inventory_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -206,6 +207,7 @@ services:  # 1. Eureka Service
       - eureka-service
       - mysql
       - kafka
+    restart: on-failure
     environment:
       SPRING_APPLICATION_NAME: order-service
       SERVER_PORT: 8086
@@ -222,31 +224,32 @@ services:  # 1. Eureka Service
       - microservice-net
 
   # 13.Payment Service
-#  payment-service:
-#    container_name: payment-service
-#    build:
-#      context: ./payment-service
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8087:8087"
-#    depends_on:
-#      - eureka-service
-#      - mysql
-#      - kafka
-#    environment:
-#      SPRING_APPLICATION_NAME: payment-service
-#      SERVER_PORT: 8087
-#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-#      SPRING_DATASOURCE_USERNAME: root
-#      SPRING_DATASOURCE_PASSWORD: password
-#      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-group
-#      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-#      EUREKA_INSTANCE_HOSTNAME: payment-service
-#    networks:
-#      - microservice-net
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    depends_on:
+      - eureka-service
+      - mysql
+      - kafka
+    restart: on-failure
+    environment:
+      SPRING_APPLICATION_NAME: payment-service
+      SERVER_PORT: 8087
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: payment-service
+    networks:
+      - microservice-net
 
   # 14. Kafka Broker
   kafka:
@@ -306,7 +309,7 @@ services:  # 1. Eureka Service
       - discovery.type=single-node
       - xpack.security.enabled=false  # Tắt bảo mật để dễ dàng thử nghiệm
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
     ulimits:
       memlock:
         soft: -1

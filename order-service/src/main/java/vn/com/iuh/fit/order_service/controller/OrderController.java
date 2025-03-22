@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
+import vn.com.iuh.fit.order_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
@@ -50,6 +51,12 @@ public class OrderController {
         return ResponseEntity.status(403).body(null);
     }
 
+    @GetMapping("/internal/{orderId}")
+    public ResponseEntity<OrderResponseDTO> getOrderInternalById(@PathVariable Long orderId) {
+        Order order = orderService.getOrderById(orderId);
+        return ResponseEntity.ok(convertToDTO(order)); // Trả về DTO gọn
+    }
+
     /**
      * API xác nhận đơn hàng
      */
@@ -93,4 +100,13 @@ public class OrderController {
         orderService.deliverOrder(orderId);
         return ResponseEntity.ok().build();
     }
+    private OrderResponseDTO convertToDTO(Order order) {
+        return new OrderResponseDTO(
+                order.getId(),
+                order.getTotalPrice(),
+                order.getUserId(),
+                order.getStatus()
+        );
+    }
+
 }

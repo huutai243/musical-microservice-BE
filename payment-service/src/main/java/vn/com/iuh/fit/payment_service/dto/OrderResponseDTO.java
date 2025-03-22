@@ -1,13 +1,9 @@
-package vn.com.iuh.fit.order_service.dto;
+package vn.com.iuh.fit.payment_service.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import vn.com.iuh.fit.order_service.enums.OrderStatus;
-
-import java.util.List;
+import vn.com.iuh.fit.payment_service.enums.OrderStatus;
 
 @Data
-@AllArgsConstructor
 public class OrderResponseDTO {
     private Long orderId;
     private Double totalPrice;

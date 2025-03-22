@@ -10,10 +10,6 @@ public class PaymentRequestDTO {
     @NotNull
     private Long orderId;
 
-    @NotNull
-    @Min(1)
-    private Double amount;
-
     @NotBlank
     private String paymentMethod; // STRIPE, VNPAY, MOMO, PAYPAL
 }

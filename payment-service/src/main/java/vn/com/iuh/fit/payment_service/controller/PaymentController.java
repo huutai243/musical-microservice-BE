@@ -11,7 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/payment")
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -21,7 +21,7 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    @PostMapping("/process")
+    @PostMapping
     public ResponseEntity<Payment> processPayment(@RequestBody @Valid PaymentRequestDTO paymentRequest) {
         return ResponseEntity.ok(paymentService.processPayment(paymentRequest));
     }
