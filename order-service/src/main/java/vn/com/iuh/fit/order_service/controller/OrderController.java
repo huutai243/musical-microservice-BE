@@ -1,6 +1,7 @@
 package vn.com.iuh.fit.order_service.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,9 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     /**
      * API tạo đơn hàng
@@ -44,19 +48,20 @@ public class OrderController {
      */
     @GetMapping("/get/{orderId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Order> getOrderById(
+    public ResponseEntity<OrderResponseDTO> getOrderById(
             @PathVariable Long orderId,
             @RequestHeader("Authorization") String authHeader
     ) {
-        String userId = JwtAuthFilter.extractUserId(authHeader, null);
+        String userId = JwtAuthFilter.extractUserId(authHeader,jwtSecret);
         Order order = orderService.getOrderById(orderId);
 
         if (userId.equals(order.getUserId())) {
-            return ResponseEntity.ok(order);
+            return ResponseEntity.ok(convertToDTO(order));
         }
 
         return ResponseEntity.status(403).build();
     }
+
 
     @GetMapping("/internal/{orderId}")
     public ResponseEntity<OrderResponseDTO> getOrderInternalById(@PathVariable Long orderId) {

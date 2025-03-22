@@ -23,29 +23,33 @@ public class StripePaymentGateway implements PaymentGateway {
     public boolean processPayment(InternalPaymentRequestDTO paymentRequest) {
         Stripe.apiKey = secretKey;
 
-        Map<String, Object> paymentParams = new HashMap<>();
-        paymentParams.put("amount", paymentRequest.getAmount().longValue());
-        paymentParams.put("currency", "vnd");
-        // Thành công (Visa)
-        paymentParams.put("payment_method", "pm_card_visa");
-        // Thành công (Mastercard)
-        paymentParams.put("payment_method", "pm_card_mastercard");
-        // Thẻ bị từ chối
-        paymentParams.put("payment_method", "pm_card_chargeDeclined");
-        // Thiếu tiền
-        paymentParams.put("payment_method", "pm_card_insufficientFunds");
-       // Lỗi hệ thống
-        paymentParams.put("payment_method", "pm_card_systemFailure");
-
-        paymentParams.put("confirm", true);
-        paymentParams.put("description", "Thanh toán đơn hàng #" + paymentRequest.getOrderId());
-
         try {
+            // Stripe yêu cầu số tiền ở dạng cent (ví dụ: 30.00 USD => 3000 cents)
+            long amountInCents = (long) (paymentRequest.getAmount() * 100);
+
+            Map<String, Object> paymentParams = new HashMap<>();
+            paymentParams.put("amount", amountInCents);
+            paymentParams.put("currency", "usd");
+            paymentParams.put("payment_method", "pm_card_visa");
+            // Thành công (Mastercard)
+//        paymentParams.put("payment_method", "pm_card_mastercard");
+//        // Thẻ bị từ chối
+//        paymentParams.put("payment_method", "pm_card_chargeDeclined");
+//        // Thiếu tiền
+//        paymentParams.put("payment_method", "pm_card_insufficientFunds");
+//       // Lỗi hệ thống
+//        paymentParams.put("payment_method", "pm_card_systemFailure");
+            paymentParams.put("confirm", true);
+            paymentParams.put("description", "Thanh toán đơn hàng #" + paymentRequest.getOrderId());
+
             PaymentIntent paymentIntent = PaymentIntent.create(paymentParams);
-            log.info("Stripe response status: " + paymentIntent.getStatus());
             return "succeeded".equals(paymentIntent.getStatus());
+
         } catch (StripeException e) {
-            log.severe("Lỗi khi xử lý thanh toán Stripe: " + e.getMessage());
+            log.severe(" Lỗi khi xử lý thanh toán Stripe: " + e.getMessage());
+            return false;
+        } catch (Exception ex) {
+            log.severe(" Lỗi không xác định khi xử lý thanh toán: " + ex.getMessage());
             return false;
         }
     }
