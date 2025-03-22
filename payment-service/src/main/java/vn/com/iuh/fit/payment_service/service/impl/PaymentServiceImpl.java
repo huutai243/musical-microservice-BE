@@ -75,6 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentStatus status = success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
         Payment payment = Payment.builder()
                 .orderId(order.getOrderId())
+                .userId(order.getUserId())
                 .amount(amount)
                 .paymentMethod(paymentRequest.getPaymentMethod())
                 .status(status)
@@ -87,7 +88,7 @@ public class PaymentServiceImpl implements PaymentService {
         paymentProducer.sendPaymentResultEvent(new PaymentResultEvent(
                 payment.getOrderId(),
                 success,
-                success ? "Thanh toán thành công" : "Thanh toán thất bại"
+                success ? "SUCCESS" : "FAILED"
         ));
 
         return payment;

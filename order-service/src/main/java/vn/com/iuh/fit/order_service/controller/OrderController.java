@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.com.iuh.fit.order_service.config.JwtAuthFilter;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
@@ -41,14 +42,20 @@ public class OrderController {
     /**
      * API lấy đơn hàng theo ID
      */
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/get/{orderId}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long orderId, Principal principal) {
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Order> getOrderById(
+            @PathVariable Long orderId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String userId = JwtAuthFilter.extractUserId(authHeader, null);
         Order order = orderService.getOrderById(orderId);
-        if (principal.getName().equals(order.getUserId()) || principal.getName().equals("ADMIN")) {
+
+        if (userId.equals(order.getUserId())) {
             return ResponseEntity.ok(order);
         }
-        return ResponseEntity.status(403).body(null);
+
+        return ResponseEntity.status(403).build();
     }
 
     @GetMapping("/internal/{orderId}")
