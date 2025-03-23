@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.inventory_service.dto.InventoryValidationItem;
+import vn.com.iuh.fit.inventory_service.event.InventoryDeductionRequestEvent;
 import vn.com.iuh.fit.inventory_service.event.ValidateInventoryEvent;
 import vn.com.iuh.fit.inventory_service.service.InventoryService;
 
@@ -58,5 +59,22 @@ public class InventoryConsumer {
             log.error(" Lỗi khi xử lý sự kiện Kafka: ", e);
         }
     }
+
+    @KafkaListener(
+            topics = "inventory-deduction-events",
+            groupId = "inventory-group",
+            containerFactory = "inventoryDeductionListenerFactory"
+    )
+    public void processInventoryDeduction(InventoryDeductionRequestEvent event) {
+        try {
+            log.info(" Nhận yêu cầu trừ kho từ Order #{} - User: {}", event.getOrderId(), event.getUserId());
+
+            inventoryService.deductStock(event.getOrderId(), event.getProducts());
+
+        } catch (Exception e) {
+            log.error(" Lỗi khi xử lý sự kiện trừ kho: ", e);
+        }
+    }
+
 }
 

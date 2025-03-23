@@ -8,6 +8,7 @@ import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.entity.OrderItem;
 import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
+import vn.com.iuh.fit.order_service.event.InventoryDeductionRequestEvent;
 import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
 import vn.com.iuh.fit.order_service.event.PaymentResultEvent;
 import vn.com.iuh.fit.order_service.event.ValidateInventoryEvent;
@@ -135,10 +136,23 @@ public class OrderServiceImpl implements OrderService {
 
         Order order = orderRepository.findById(event.getOrderId())
                 .orElseThrow(() -> new RuntimeException(" Không tìm thấy đơn hàng #" + event.getOrderId()));
-
         if (event.isSuccess()) {
             order.setStatus(OrderStatus.PAYMENT_SUCCESS);
             log.info(" Đơn hàng #{} thanh toán thành công. Chuyển sang trạng thái PAYMENT_SUCCESS.", order.getId());
+            InventoryDeductionRequestEvent inventoryEvent = InventoryDeductionRequestEvent.builder()
+                    .orderId(order.getId())
+                    .userId(order.getUserId())
+                    .reason("ORDER_PAID")
+                    .products(order.getItems().stream()
+                            .map(item -> InventoryDeductionRequestEvent.ProductQuantity.builder()
+                                    .productId(item.getProductId())
+                                    .quantity(item.getQuantity())
+                                    .build())
+                            .collect(Collectors.toList()))
+                    .build();
+
+            orderProducer.sendInventoryDeductionRequest(inventoryEvent);
+            log.info("Gửi event đến inventory để cập nhật số lượng");
         } else {
             order.setStatus(OrderStatus.PAYMENT_FAILED);
             log.info(" Đơn hàng #{} thanh toán thất bại. Chuyển sang trạng thái PAYMENT_FAILED.", order.getId());

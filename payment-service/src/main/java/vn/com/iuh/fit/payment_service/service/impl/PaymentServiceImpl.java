@@ -46,8 +46,9 @@ public class PaymentServiceImpl implements PaymentService {
         OrderResponseDTO order = orderClient.getOrderById(paymentRequest.getOrderId());
 
         // 2. Kiểm tra trạng thái đơn hàng
-        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new IllegalStateException("Đơn hàng chưa sẵn sàng để thanh toán!");
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT &&
+                order.getStatus() != OrderStatus.PAYMENT_FAILED) {
+            throw new IllegalStateException("Đơn hàng không ở trạng thái cho phép thanh toán!");
         }
 
         // 3. Lấy số tiền thực tế từ order
@@ -81,38 +82,44 @@ public class PaymentServiceImpl implements PaymentService {
                 .status(status)
                 .createdAt(LocalDateTime.now())
                 .build();
-
         paymentRepository.save(payment);
-
-        // 7. Gửi event
-        paymentProducer.sendPaymentResultEvent(new PaymentResultEvent(
-                payment.getOrderId(),
-                success,
-                success ? "SUCCESS" : "FAILED"
-        ));
-
+        //7. Gửi event kết quả payment về order
+        paymentProducer.sendPaymentResultEvent(PaymentResultEvent.builder()
+                .orderId(payment.getOrderId())
+                .userId(payment.getUserId())
+                .amount(payment.getAmount())
+                .paymentMethod(payment.getPaymentMethod())
+                .success(success)
+                .message(success ? "SUCCESS" : "FAILED")
+                .timestamp(payment.getCreatedAt())
+                .build());
         return payment;
     }
-
-
 
     @Override
     @Transactional
     public void processRefund(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException(" Không tìm thấy giao dịch cần hoàn tiền"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch cần hoàn tiền"));
 
-        if (!PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
-            throw new IllegalStateException(" Chỉ có thể hoàn tiền cho các giao dịch thành công!");
+        if (!PaymentStatus.SUCCESS.name().equals(payment.getStatus().name())) {
+            throw new IllegalStateException("Chỉ có thể hoàn tiền cho các giao dịch thành công!");
         }
-
         payment.setStatus(PaymentStatus.REFUNDED);
         paymentRepository.save(payment);
+        PaymentResultEvent event = PaymentResultEvent.builder()
+                .orderId(payment.getOrderId())
+                .userId(payment.getUserId())
+                .amount(payment.getAmount())
+                .paymentMethod(payment.getPaymentMethod())
+                .success(true)
+                .message("Hoàn tiền thành công!")
+                .timestamp(LocalDateTime.now())
+                .build();
 
-        kafkaTemplate.send("payment-events",
-                new PaymentResultEvent(payment.getOrderId(), true, " Hoàn tiền thành công!"));
+        kafkaTemplate.send("payment-events", event);
 
-        log.info(" Hoàn tiền thành công cho Payment ID: " + paymentId);
+        log.info("Hoàn tiền thành công cho Payment ID: " + paymentId);
     }
 
     @Override
