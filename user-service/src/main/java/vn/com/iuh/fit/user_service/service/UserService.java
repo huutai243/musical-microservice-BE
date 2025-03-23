@@ -30,7 +30,7 @@ public class UserService {
     public User createUser(UserRequest userRequest) {
         User user = User.builder()
                 .id(userRequest.getId())
-                .fullName(userRequest.getUsername())
+                .username(userRequest.getUsername())
                 .email(userRequest.getEmail())
                 .build();
         return userRepository.save(user);
@@ -42,9 +42,15 @@ public class UserService {
     public User updateUser(Long id, User userRequest) {
         return userRepository.findById(id)
                 .map(user -> {
-                    user.setFullName(userRequest.getFullName());
-                    user.setPhoneNumber(userRequest.getPhoneNumber());
-                    user.setAddress(userRequest.getAddress());
+                    if (userRequest.getAvatar() != null) {
+                        user.setAvatar(userRequest.getAvatar());
+                    }
+                    if (userRequest.getPhoneNumber() != null) {
+                        user.setPhoneNumber(userRequest.getPhoneNumber());
+                    }
+                    if (userRequest.getAddress() != null) {
+                        user.setAddress(userRequest.getAddress());
+                    }
                     return userRepository.save(user);
                 }).orElseThrow(() -> new RuntimeException("User not found"));
     }
