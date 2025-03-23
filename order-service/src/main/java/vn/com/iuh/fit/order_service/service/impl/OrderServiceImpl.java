@@ -8,15 +8,13 @@ import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.entity.OrderItem;
 import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
-import vn.com.iuh.fit.order_service.event.InventoryDeductionRequestEvent;
-import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
-import vn.com.iuh.fit.order_service.event.PaymentResultEvent;
-import vn.com.iuh.fit.order_service.event.ValidateInventoryEvent;
+import vn.com.iuh.fit.order_service.event.*;
 import vn.com.iuh.fit.order_service.producer.OrderProducer;
 import vn.com.iuh.fit.order_service.repository.OrderItemRepository;
 import vn.com.iuh.fit.order_service.repository.OrderRepository;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -153,6 +151,19 @@ public class OrderServiceImpl implements OrderService {
 
             orderProducer.sendInventoryDeductionRequest(inventoryEvent);
             log.info("Gửi event đến inventory để cập nhật số lượng");
+
+            NotificationOrderEvent notificationEvent = NotificationOrderEvent.builder()
+                    .userId(order.getUserId())
+                    .orderId(order.getId())
+                    .status(OrderStatus.PAYMENT_SUCCESS.name())
+                    .title("Đặt hàng thành công!")
+                    .message("Đơn hàng #" + order.getId() + " đã được thanh toán thành công với tổng tiền " +
+                            order.getTotalPrice() + " VNĐ. Phương thức thanh toán: " + event.getPaymentMethod())
+                    .paymentMethod(event.getPaymentMethod())
+                    .totalAmount(order.getTotalPrice())
+                    .timestamp(Instant.now())
+                    .build();
+            orderProducer.sendNotificationOrderEvent(notificationEvent);
         } else {
             order.setStatus(OrderStatus.PAYMENT_FAILED);
             log.info(" Đơn hàng #{} thanh toán thất bại. Chuyển sang trạng thái PAYMENT_FAILED.", order.getId());

@@ -1,7 +1,7 @@
-package vn.com.iuh.fit.order_service.config;
+package vn.com.iuh.fit.notification_service.config;
 
-import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaAdmin;
@@ -22,18 +22,7 @@ public class KafkaAdminTopicConfig {
     }
 
     @Bean
-    public NewTopic inventoryValidationTopic() {
-        return new NewTopic("inventory-validation-events", 3, (short) 1);
+    public NewTopic notificationTopic() {
+        return new NewTopic("notification-events", 3, (short) 1);
     }
-
-    @Bean
-    public NewTopic orderEventsTopic() {
-        return new NewTopic("order-events", 3, (short) 1);
-    }
-
-    @Bean
-    public NewTopic inventoryDeductionTopic() { return new NewTopic("inventory-deduction-events", 3, (short) 1); }
-
-    @Bean
-    public NewTopic notificationTopic() {return new NewTopic("notification-events", 3, (short) 1); }
 }

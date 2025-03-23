@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.order_service.event.InventoryDeductionRequestEvent;
+import vn.com.iuh.fit.order_service.event.NotificationOrderEvent;
 import vn.com.iuh.fit.order_service.event.ValidateInventoryEvent;
 
 @Slf4j
@@ -40,6 +41,15 @@ public class OrderProducer {
             log.info(" Đã gửi event trừ kho thành công: {}", event);
         } catch (Exception ex) {
             log.error(" Lỗi khi gửi sự kiện trừ số lượng đến Inventory-service: {}", ex.getMessage(), ex);
+        }
+    }
+
+    public void sendNotificationOrderEvent(NotificationOrderEvent event) {
+        try {
+            kafkaTemplate.send("notification-events", event).get();
+            log.info(" Đã gửi NotificationOrderEvent thành công: {}", event);
+        } catch (Exception ex) {
+            log.error(" Lỗi khi gửi NotificationEvent đến Notification Service: {}", ex.getMessage(), ex);
         }
     }
 

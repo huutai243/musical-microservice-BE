@@ -20,7 +20,7 @@ import java.util.Map;
 public class KafkaConsumerConfig {
 
     private static final String BOOTSTRAP_SERVERS = "kafka:9092";
-    private static final String GROUP_ID = "order-group";
+    private static final String GROUP_ID = "order-group-new";
     private Map<String, Object> commonConsumerConfig() {
     Map<String, Object> props = new HashMap<>();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
