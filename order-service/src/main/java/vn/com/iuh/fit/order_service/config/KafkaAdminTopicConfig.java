@@ -30,4 +30,7 @@ public class KafkaAdminTopicConfig {
     public NewTopic orderEventsTopic() {
         return new NewTopic("order-events", 3, (short) 1);
     }
+
+    @Bean
+    public NewTopic inventoryDeductionTopic() { return new NewTopic("inventory-deuction-events", 3, (short) 1); }
 }

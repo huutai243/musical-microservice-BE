@@ -2,8 +2,11 @@ package vn.com.iuh.fit.inventory_service.service.impl;
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import vn.com.iuh.fit.inventory_service.dto.InventoryValidationItem;
 import vn.com.iuh.fit.inventory_service.entity.Inventory;
+import vn.com.iuh.fit.inventory_service.event.InventoryDeductionRequestEvent;
 import vn.com.iuh.fit.inventory_service.event.InventoryValidationResultEvent;
 import vn.com.iuh.fit.inventory_service.producer.InventoryProducer;
 import vn.com.iuh.fit.inventory_service.repository.InventoryRepository;
@@ -16,6 +19,8 @@ import java.util.List;
 public class InventoryServiceImpl implements InventoryService {
     private final InventoryRepository inventoryRepository;
     private final InventoryProducer inventoryProducer;
+    private static final Logger LOGGER = LoggerFactory.getLogger(InventoryServiceImpl.class);
+
 
     public InventoryServiceImpl(InventoryRepository inventoryRepository, InventoryProducer inventoryProducer) {
         this.inventoryRepository = inventoryRepository;
@@ -62,10 +67,6 @@ public class InventoryServiceImpl implements InventoryService {
                     inventoryRepository.save(inventory);
                 }
             } else {
-                // Trừ số lượng sản phẩm khỏi kho
-                inventory.setQuantity(inventory.getQuantity() - item.getQuantity());
-                inventoryRepository.save(inventory);
-
                 validatedItems.add(new InventoryValidationResultEvent.Item(
                         item.getProductId().toString(),
                         item.getQuantity(),
@@ -75,7 +76,6 @@ public class InventoryServiceImpl implements InventoryService {
             }
         }
 
-        // Xác định trạng thái đơn hàng
         String status;
         String message;
 
@@ -99,6 +99,25 @@ public class InventoryServiceImpl implements InventoryService {
         );
     }
 
+    @Override
+    @Transactional
+    public void deductStock(Long orderId, List<InventoryDeductionRequestEvent.ProductQuantity> products) {
+        LOGGER.info(" Trừ tồn kho cho đơn hàng #{} với {} sản phẩm", orderId, products.size());
+
+        for (InventoryDeductionRequestEvent.ProductQuantity item : products) {
+            Long productId = Long.parseLong(item.getProductId());
+            Integer quantity = item.getQuantity();
+
+            Inventory inventory = inventoryRepository.findByProductId(productId)
+                    .orElseThrow(() -> new RuntimeException(" Sản phẩm không tồn tại: " + productId));
+            inventory.setQuantity(inventory.getQuantity() - quantity);
+            inventoryRepository.save(inventory);
+
+            LOGGER.info(" Trừ {} sản phẩm [{}] thành công. Còn lại: {}", quantity, productId, inventory.getQuantity());
+        }
+
+        LOGGER.info(" Hoàn tất trừ kho cho đơn hàng #{}", orderId);
+    }
 
     @Override
     @Transactional

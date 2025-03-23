@@ -3,6 +3,7 @@ package vn.com.iuh.fit.order_service.producer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import vn.com.iuh.fit.order_service.event.InventoryDeductionRequestEvent;
 import vn.com.iuh.fit.order_service.event.ValidateInventoryEvent;
 
 @Slf4j
@@ -32,5 +33,15 @@ public class OrderProducer {
             log.error("Lỗi khi gửi sự kiện trạng thái: ", ex);
         }
     }
+
+    public void sendInventoryDeductionRequest(InventoryDeductionRequestEvent event){
+        try {
+            kafkaTemplate.send("inventory-deduction-events", event).get();
+            log.info(" Đã gửi event trừ kho thành công: {}", event);
+        } catch (Exception ex) {
+            log.error(" Lỗi khi gửi sự kiện trừ số lượng đến Inventory-service: {}", ex.getMessage(), ex);
+        }
+    }
+
 }
 

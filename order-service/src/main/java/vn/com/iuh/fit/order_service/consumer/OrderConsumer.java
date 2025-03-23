@@ -59,7 +59,7 @@ public class OrderConsumer {
     )
     public void processPaymentResultEvent(PaymentResultEvent event) {
         try {
-            LOGGER.info("📥 Nhận kết quả thanh toán từ Kafka: {}", event);
+            LOGGER.info(" Nhận kết quả thanh toán từ Kafka: {}", event);
             orderService.handlePaymentResult(event);
         } catch (Exception e) {
             LOGGER.error(" Lỗi khi xử lý kết quả thanh toán: ", e);
