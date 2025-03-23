@@ -11,12 +11,5 @@ public class PaymentRequestDTO {
     private Long orderId;
 
     @NotBlank
-    private String userId;
-
-    @NotNull
-    @Min(1)
-    private Double amount;
-
-    @NotBlank
     private String paymentMethod; // STRIPE, VNPAY, MOMO, PAYPAL
 }

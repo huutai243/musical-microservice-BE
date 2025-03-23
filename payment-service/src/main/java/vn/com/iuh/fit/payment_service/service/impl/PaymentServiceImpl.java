@@ -4,8 +4,12 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import vn.com.iuh.fit.payment_service.client.OrderClient;
+import vn.com.iuh.fit.payment_service.dto.InternalPaymentRequestDTO;
+import vn.com.iuh.fit.payment_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.payment_service.dto.PaymentRequestDTO;
 import vn.com.iuh.fit.payment_service.entity.Payment;
+import vn.com.iuh.fit.payment_service.enums.OrderStatus;
 import vn.com.iuh.fit.payment_service.enums.PaymentStatus;
 import vn.com.iuh.fit.payment_service.event.PaymentResultEvent;
 import vn.com.iuh.fit.payment_service.gateway.PayPalPaymentGateway;
@@ -29,13 +33,27 @@ public class PaymentServiceImpl implements PaymentService {
     @Autowired private StripePaymentGateway stripePaymentGateway;
     @Autowired private PayPalPaymentGateway paypalPaymentGateway;
     @Autowired private PaymentProducer paymentProducer;
+    @Autowired private OrderClient orderClient;
+
 
 
     @Override
     @Transactional
     public Payment processPayment(PaymentRequestDTO paymentRequest) {
-        log.info(" Xử lý thanh toán bằng phương thức: " + paymentRequest.getPaymentMethod());
+        log.info("Xử lý thanh toán cho Order #" + paymentRequest.getOrderId());
 
+        // 1. Gọi sang OrderService để lấy thông tin đơn hàng
+        OrderResponseDTO order = orderClient.getOrderById(paymentRequest.getOrderId());
+
+        // 2. Kiểm tra trạng thái đơn hàng
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new IllegalStateException("Đơn hàng chưa sẵn sàng để thanh toán!");
+        }
+
+        // 3. Lấy số tiền thực tế từ order
+        Double amount = order.getTotalPrice();
+
+        // 4. Gọi Gateway tương ứng
         PaymentGateway gateway;
         switch (paymentRequest.getPaymentMethod().toUpperCase()) {
             case "STRIPE":
@@ -45,15 +63,20 @@ public class PaymentServiceImpl implements PaymentService {
                 gateway = paypalPaymentGateway;
                 break;
             default:
-                throw new IllegalArgumentException(" Phương thức thanh toán không hợp lệ!");
+                throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ!");
         }
 
-        boolean success = gateway.processPayment(paymentRequest);
+        // 5. Gửi thanh toán (dùng DTO nội bộ)
+        boolean success = gateway.processPayment(
+                new InternalPaymentRequestDTO(order.getOrderId(), amount, paymentRequest.getPaymentMethod())
+        );
+
+        // 6. Lưu DB
         PaymentStatus status = success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
         Payment payment = Payment.builder()
-                .orderId(paymentRequest.getOrderId())
-                .userId(paymentRequest.getUserId())
-                .amount(paymentRequest.getAmount())
+                .orderId(order.getOrderId())
+                .userId(order.getUserId())
+                .amount(amount)
                 .paymentMethod(paymentRequest.getPaymentMethod())
                 .status(status)
                 .createdAt(LocalDateTime.now())
@@ -61,14 +84,17 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
 
+        // 7. Gửi event
         paymentProducer.sendPaymentResultEvent(new PaymentResultEvent(
                 payment.getOrderId(),
                 success,
-                success ? " Thanh toán thành công" : " Thanh toán thất bại")
-        );
+                success ? "SUCCESS" : "FAILED"
+        ));
 
         return payment;
     }
+
+
 
     @Override
     @Transactional

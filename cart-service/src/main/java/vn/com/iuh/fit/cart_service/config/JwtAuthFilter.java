@@ -89,6 +89,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return claims.getSubject(); // `sub` trong JWT chứa `userId`
+        Integer userId = claims.get("id", Integer.class);
+        return String.valueOf(userId);
     }
 }

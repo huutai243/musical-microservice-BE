@@ -54,14 +54,11 @@ public class ProductServiceImpl implements ProductService {
         return convertToResponse(product);
     }
 
-    // 2 THÊM SẢN PHẨM (HỖ TRỢ NHIỀU ẢNH)
     @Override
     public ProductResponse addProductWithImages(ProductRequest productRequest, List<MultipartFile> imageFiles) throws Exception {
-        // 🔹 Lấy danh mục từ DB
         Category category = categoryRepository.findById(productRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
-        // 🔹 Tạo sản phẩm mới
         Product product = Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
@@ -69,10 +66,8 @@ public class ProductServiceImpl implements ProductService {
                 .category(category)
                 .build();
 
-        // 🔹 Lưu sản phẩm vào MySQL
         product = productRepository.save(product);
 
-        // 🔹 Upload ảnh lên MinIO & lưu vào `ProductImage`
         List<String> imageUrls = fileStorageService.uploadFiles(imageFiles);
         List<ProductImage> imageEntities = new ArrayList<>();
 
@@ -81,17 +76,16 @@ public class ProductServiceImpl implements ProductService {
             imageEntities.add(productImageRepository.save(productImage));
         }
 
-        // 🔹 Cập nhật danh sách hình ảnh vào sản phẩm
         product.setImages(imageEntities);
 
-        // ✅ Cập nhật vào Elasticsearch (Lưu cả danh sách ảnh)
+        // Cập nhật vào Elasticsearch (Lưu cả danh sách ảnh)
         ProductDocument productDocument = ProductDocument.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-                .categoryId(product.getCategory().getId()) // ✅ Lưu categoryId
-                .imageUrls(imageUrls) // ✅ Lưu danh sách ảnh
+                .categoryId(product.getCategory().getId()) // Lưu categoryId
+                .imageUrls(imageUrls) // Lưu danh sách ảnh
                 .build();
 
         productElasticsearchRepository.save(productDocument);

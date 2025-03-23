@@ -1,10 +1,13 @@
 package vn.com.iuh.fit.order_service.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.com.iuh.fit.order_service.config.JwtAuthFilter;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
+import vn.com.iuh.fit.order_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
@@ -17,6 +20,9 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     /**
      * API tạo đơn hàng
@@ -40,14 +46,27 @@ public class OrderController {
     /**
      * API lấy đơn hàng theo ID
      */
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/get/{orderId}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long orderId, Principal principal) {
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<OrderResponseDTO> getOrderById(
+            @PathVariable Long orderId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String userId = JwtAuthFilter.extractUserId(authHeader,jwtSecret);
         Order order = orderService.getOrderById(orderId);
-        if (principal.getName().equals(order.getUserId()) || principal.getName().equals("ADMIN")) {
-            return ResponseEntity.ok(order);
+
+        if (userId.equals(order.getUserId())) {
+            return ResponseEntity.ok(convertToDTO(order));
         }
-        return ResponseEntity.status(403).body(null);
+
+        return ResponseEntity.status(403).build();
+    }
+
+
+    @GetMapping("/internal/{orderId}")
+    public ResponseEntity<OrderResponseDTO> getOrderInternalById(@PathVariable Long orderId) {
+        Order order = orderService.getOrderById(orderId);
+        return ResponseEntity.ok(convertToDTO(order)); // Trả về DTO gọn
     }
 
     /**
@@ -93,4 +112,13 @@ public class OrderController {
         orderService.deliverOrder(orderId);
         return ResponseEntity.ok().build();
     }
+    private OrderResponseDTO convertToDTO(Order order) {
+        return new OrderResponseDTO(
+                order.getId(),
+                order.getTotalPrice(),
+                order.getUserId(),
+                order.getStatus()
+        );
+    }
+
 }

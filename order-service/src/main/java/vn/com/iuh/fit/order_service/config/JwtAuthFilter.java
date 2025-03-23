@@ -69,4 +69,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .parseClaimsJws(token)
                 .getBody();
     }
+    public static String extractUserId(String authHeader, String secretKey) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+
+        Claims claims = Jwts.parser()
+                .setSigningKey(Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey)))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        Object userIdObj = claims.get("id");
+
+        return userIdObj != null ? String.valueOf(userIdObj) : null;
+    }
+
 }

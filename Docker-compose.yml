@@ -3,8 +3,7 @@
 
 version: "3.8"
 
-services:
-  # 1. Eureka Service (Service Discovery)
+services:  # 1. Eureka Service
   eureka-service:
     container_name: eureka-service
     build:
@@ -15,7 +14,7 @@ services:
     networks:
       - microservice-net
 
-  # 2. API Gateway (Spring Cloud Gateway)
+  # 2. API Gateway
   api-gateway:
     container_name: api-gateway
     build:
@@ -35,7 +34,7 @@ services:
     networks:
       - microservice-net
 
-  # 3. Auth Service (Xác thực người dùng)
+  # 3. Auth Service
   auth-service:
     container_name: auth-service
     build:
@@ -55,7 +54,7 @@ services:
     networks:
       - microservice-net
 
-  # 4. Product Service (Quản lý sản phẩm)
+  # 4. Product Service
   product-service:
     container_name: product-service
     build:
@@ -67,7 +66,8 @@ services:
       - eureka-service
       - mysql
       - minio
-      - elasticsearch   # Thêm Elasticsearch để đảm bảo service chạy sau khi Elasticsearch khởi động
+      - elasticsearch
+    restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/musicstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -78,11 +78,11 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: musicstore
-      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200  # Cấu hình Elasticsearch cho Product Service
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
     networks:
       - microservice-net
 
-  # 5. Cart Service (Quản lý giỏ hàng)
+  # 5. Cart Service
   cart-service:
     container_name: cart-service
     build:
@@ -110,7 +110,7 @@ services:
     networks:
       - microservice-net
 
-  # 7. Inventory Service (Quản lý tồn kho)
+  # 7. Inventory Service
   inventory-service:
     container_name: inventory-service
     build:
@@ -121,6 +121,7 @@ services:
     depends_on:
       - eureka-service
       - mysql
+    restart: on-failure
     environment:
       SPRING_APPLICATION_NAME: inventory-service
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/inventory_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -134,7 +135,7 @@ services:
     networks:
       - microservice-net
 
-  # 8. User Service (Quản lý thông tin cá nhân)
+  # 8. User Service
   user-service:
     container_name: user-service
     build:
@@ -173,7 +174,7 @@ services:
     networks:
       - microservice-net
 
-  # 10. MinIO (Lưu trữ ảnh sản phẩm)
+  # 10. MinIO
   minio:
     container_name: minio
     image: quay.io/minio/minio
@@ -189,7 +190,7 @@ services:
     networks:
       - microservice-net
 
-  # 11. Redis (Caching & Rate Limiting)
+  # 11. Redis
   redis:
     image: redis:7.2
     container_name: redis
@@ -211,6 +212,7 @@ services:
       - eureka-service
       - mysql
       - kafka
+    restart: on-failure
     environment:
       SPRING_APPLICATION_NAME: order-service
       SERVER_PORT: 8086
@@ -226,7 +228,35 @@ services:
     networks:
       - microservice-net
 
-  # 15. Kafka Broker
+  # 13.Payment Service
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    depends_on:
+      - eureka-service
+      - mysql
+      - kafka
+    restart: on-failure
+    environment:
+      SPRING_APPLICATION_NAME: payment-service
+      SERVER_PORT: 8087
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: payment-service
+    networks:
+      - microservice-net
+
+  # 14. Kafka Broker
   kafka:
     image: confluentinc/cp-kafka:7.2.2
     container_name: kafka
@@ -248,7 +278,7 @@ services:
       test: [ "CMD", "kafka-topics", "--list", "--bootstrap-server", "kafka:9092" ]
       interval: 10s
       retries: 5
-  # 16. Zookeeper
+  # 15. Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.2
     container_name: zookeeper
@@ -263,7 +293,7 @@ services:
       test: [ "CMD", "echo", "ruok", "|", "nc", "localhost", "2181" ]
       interval: 10s
       retries: 5
-  # 17. Kafka UI (Kafdrop) - Debug Kafka messages
+  # 16. Kafka UI
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
@@ -276,7 +306,7 @@ services:
       JVM_OPTS: "-Xms32M -Xmx64M"
     networks:
       - microservice-net
-  # 18. Elasticsearch (Search Engine)
+  # 17. Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: elasticsearch
@@ -284,7 +314,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false  # Tắt bảo mật để dễ dàng thử nghiệm
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
     ulimits:
       memlock:
         soft: -1
@@ -294,8 +324,7 @@ services:
       - "9300:9300"
     networks:
       - microservice-net
-
-  # 19. Kibana (Elasticsearch UI)
+  # 18. Kibana
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.0
     container_name: kibana
