@@ -23,13 +23,13 @@ services:
           cpus: "0"
           memory: "0M"
 
-  user-service:
-    image: alpine
-    container_name: dummy-user-service
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
+#  user-service:
+#    image: alpine
+#    container_name: dummy-user-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"

@@ -45,6 +45,7 @@ services:  # 1. Eureka Service
     depends_on:
       - eureka-service
       - mysql
+    restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -146,6 +147,7 @@ services:  # 1. Eureka Service
     depends_on:
       - eureka-service
       - mysql
+    restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -168,6 +170,11 @@ services:  # 1. Eureka Service
       - ./mysql/init-scripts:/docker-entrypoint-initdb.d
     networks:
       - microservice-net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 10. MinIO
   minio:
