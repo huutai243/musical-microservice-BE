@@ -23,5 +23,5 @@ public class User {
     private String phoneNumber;
     private String address;
 
-    private String avatar;
+    private String avatarUrl;
 }
