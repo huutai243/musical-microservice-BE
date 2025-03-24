@@ -19,6 +19,10 @@ import vn.com.iuh.fit.product_service.service.ProductService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -214,6 +218,27 @@ public class ProductServiceImpl implements ProductService {
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
+    @Override
+    public Page<ProductResponse> searchProductsPaged(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> products = productRepository.findByNameContainingIgnoreCase(keyword, pageable);
+        return products.map(this::convertToResponse);
+    }
+
+    @Override
+    public Page<ProductResponse> filterProductsByPricePaged(double minPrice, double maxPrice, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> products = productRepository.findByPriceBetween(minPrice, maxPrice, pageable);
+        return products.map(this::convertToResponse);
+    }
+
+    @Override
+    public Page<ProductResponse> getProductsByCategoryPaged(Long categoryId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> products = productRepository.findByCategoryId(categoryId, pageable);
+        return products.map(this::convertToResponse);
+    }
+
 
     @Override
     public List<ProductResponse> getBestSellingProducts(int limit) {

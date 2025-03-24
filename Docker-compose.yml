@@ -45,6 +45,7 @@ services:  # 1. Eureka Service
     depends_on:
       - eureka-service
       - mysql
+    restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -146,7 +147,7 @@ services:  # 1. Eureka Service
     depends_on:
       - eureka-service
       - mysql
-      - minio
+    restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -173,6 +174,11 @@ services:  # 1. Eureka Service
       - ./mysql/init-scripts:/docker-entrypoint-initdb.d
     networks:
       - microservice-net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 10. MinIO
   minio:
@@ -336,13 +342,45 @@ services:  # 1. Eureka Service
       - "5601:5601"
     networks:
       - microservice-net
+  # 19. Notification Service
+  notification-service:
+    container_name: notification-service
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8088:8088"
+    depends_on:
+      - eureka-service
+      - kafka
+      - mongo
+    restart: on-failure
+    environment:
+      SPRING_APPLICATION_NAME: notification-service
+      SERVER_PORT: 8088
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: notification-service
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/notification_db
+    networks:
+      - microservice-net
+  # 20. MongoDB for Notification Service
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - microservice-net
 
 volumes:
   redis-data:
     driver: local
   mysql_data:
   minio_data:
-  postgres_data:
+  mongo_data:
 
 networks:
   microservice-net:

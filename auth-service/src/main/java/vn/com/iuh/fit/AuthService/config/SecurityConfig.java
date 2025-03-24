@@ -33,7 +33,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/auth/**"),
-                                new AntPathRequestMatcher("/actuator/**")
+                                new AntPathRequestMatcher("/actuator/**"),
+                                new AntPathRequestMatcher("/api/auth/user/*/email"),
+                                new AntPathRequestMatcher("/api/auth/email/send", "POST")
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -37,6 +37,17 @@ public class UserController {
     public ResponseEntity<User> updateAvatar(@RequestPart(value = "image", required = false) MultipartFile imageFile) {
         Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
+        // Kiểm tra nếu tệp rỗng
+        if (imageFile == null || imageFile.isEmpty()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        // Kiểm tra loại file hợp lệ
+        String contentType = imageFile.getContentType();
+        if (!("image/jpeg".equals(contentType) || "image/png".equals(contentType))) {
+            throw new IllegalArgumentException("Chỉ hỗ trợ file JPG hoặc PNG.");
+        }
+
         // Cập nhật avatar cho người dùng
         User updatedUser = userService.updateAvatar(userId, imageFile);
         return ResponseEntity.ok(updatedUser);

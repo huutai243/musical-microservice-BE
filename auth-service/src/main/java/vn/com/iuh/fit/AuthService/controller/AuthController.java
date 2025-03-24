@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.com.iuh.fit.AuthService.dto.*;
+import vn.com.iuh.fit.AuthService.entity.User;
+import vn.com.iuh.fit.AuthService.repository.UserRepository;
 import vn.com.iuh.fit.AuthService.service.AuthService;
 import vn.com.iuh.fit.AuthService.config.JwtService;
 
@@ -20,6 +22,7 @@ import java.util.Map;
 public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     /**
      * Đăng ký tài khoản mới
@@ -83,6 +86,13 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
+    @GetMapping("/user/{id}/email")
+    public ResponseEntity<String> getEmailByUserId(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+        return ResponseEntity.ok(user.getEmail());
+    }
+
     /**
      * Test giải mã JWT để lấy claims
      */
