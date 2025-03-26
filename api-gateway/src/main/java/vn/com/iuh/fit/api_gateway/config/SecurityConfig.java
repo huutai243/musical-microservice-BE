@@ -66,6 +66,7 @@ public class SecurityConfig {
                     || path.startsWith("/api/products/page")
                     || path.startsWith("/api/products/latest")
                     || path.startsWith("/api/products/bestselling")
+                    || path.startsWith("/api/reviews/health")
                     || path.equals("/api/categories/get-all")
                     || path.matches("^/api/categories/\\d+$"))
             {

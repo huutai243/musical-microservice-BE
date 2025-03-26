@@ -374,6 +374,25 @@ services:  # 1. Eureka Service
       - mongo_data:/data/db
     networks:
       - microservice-net
+  # 21. Review Service
+  review-service:
+    container_name: review-service
+    build:
+      context: ./review-service
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8090"
+    depends_on:
+      - eureka-service
+      - mongo
+    restart: on-failure
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/review_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: review-service
+    networks:
+      - microservice-net
+
 
 volumes:
   redis-data:
