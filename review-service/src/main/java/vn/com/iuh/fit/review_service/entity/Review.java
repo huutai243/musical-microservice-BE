@@ -1,5 +1,7 @@
 package vn.com.iuh.fit.review_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -12,7 +14,8 @@ import org.springframework.data.mongodb.core.index.Indexed;
 @AllArgsConstructor
 public class Review {
     @Id
-    private ObjectId id;  // Dùng ObjectId thay vì String cho MongoDB
+    @JsonIgnore // Ẩn ObjectId gốc trong JSON
+    private ObjectId id;
 
     @Indexed
     private String userId;
@@ -22,4 +25,14 @@ public class Review {
 
     private String comment;
     private int rating;
+
+    @JsonProperty("id") // Dùng tên "id" khi serialize thành JSON
+    public String getIdAsString() {
+        return id != null ? id.toHexString() : null;
+    }
+
+    public void setId(ObjectId id) {
+        this.id = id;
+    }
+
 }

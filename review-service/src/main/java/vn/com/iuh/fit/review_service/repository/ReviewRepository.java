@@ -1,10 +1,12 @@
 package vn.com.iuh.fit.review_service.repository;
 
 import org.bson.types.ObjectId;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import vn.com.iuh.fit.review_service.entity.Review;
-import java.util.List;
 
 public interface ReviewRepository extends MongoRepository<Review, ObjectId> {
-    List<Review> findByProductId(String productId);
+    Page<Review> findByProductId(String productId, Pageable pageable);
+    Page<Review> findByUserId(String userId, Pageable pageable);
 }

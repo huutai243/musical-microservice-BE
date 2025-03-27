@@ -1,78 +1,113 @@
 package vn.com.iuh.fit.review_service.controller;
-
-import vn.com.iuh.fit.review_service.entity.Review;
-import vn.com.iuh.fit.review_service.service.ReviewService;
 import org.bson.types.ObjectId;
+import vn.com.iuh.fit.review_service.entity.Review;
+import vn.com.iuh.fit.review_service.repository.ReviewRepository;
+import vn.com.iuh.fit.review_service.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/reviews")
 public class ReviewController {
+
     private final ReviewService reviewService;
 
     @Autowired
     public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
     }
-    // ✅ API kiểm tra service
-    @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Review Service is running...");
-    }
 
-    // ✅ Lấy tất cả đánh giá
-    @GetMapping
-    public ResponseEntity<List<Review>> getAllReviews() {
-        return ResponseEntity.ok(reviewService.getAllReviews());
-    }
-
-    // ✅ Lấy danh sách đánh giá theo sản phẩm
-    @GetMapping("/product/{productId}")
-    public ResponseEntity<List<Review>> getReviewsByProductId(@PathVariable String productId) {
-        List<Review> reviews = reviewService.getReviewsByProductId(productId);
-        return ResponseEntity.ok(reviews);
-    }
-
-    // ✅ Lấy đánh giá theo ID (chuyển đổi String -> ObjectId)
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getReviewById(@PathVariable String id) {
-        if (!ObjectId.isValid(id)) {
-            return ResponseEntity.badRequest().body("Invalid review ID format");
-        }
-
-        Optional<Review> review = reviewService.getReviewById(new ObjectId(id));
-        return review.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // ✅ Thêm mới đánh giá
+    // ✅ USER & ADMIN: Thêm review (User chỉ cho chính họ, Admin chỉ cho chính họ)
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Review> addReview(@RequestBody Review review) {
-        return ResponseEntity.ok(reviewService.addReview(review));
+    public ResponseEntity<Review> addReview(@RequestBody Review review, Authentication authentication) {
+        String currentUserId = authentication.getName();
+        review.setUserId(currentUserId);
+        Review savedReview = reviewService.createReview(review);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedReview);
     }
 
-    // ✅ Cập nhật đánh giá (chuyển đổi String -> ObjectId)
+    // ✅ USER & ADMIN: Lấy tất cả review của một sản phẩm (phân trang)
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<Page<Review>> getReviewsByProductId(
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(reviewService.getReviewsByProductId(productId, page, size));
+    }
+
+    // ✅ ADMIN: Xem tất cả review (phân trang)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<Page<Review>> getAllReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(reviewService.getAllReviews(page, size));
+    }
+
+    // ✅ ADMIN: Xem review của một user cụ thể (phân trang)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<Review>> getReviewsByUserId(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(reviewService.getReviewsByUserId(userId, page, size));
+    }
+
+    // ✅ ADMIN: Xem review theo ID
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}")
+    public ResponseEntity<Review> getReviewById(@PathVariable ObjectId id) {
+        return reviewService.getReviewById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ✅ USER: Cập nhật review của chính họ, ADMIN: Cập nhật bất kỳ review nào
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateReview(@PathVariable String id, @RequestBody Review updatedReview) {
-        if (!ObjectId.isValid(id)) {
-            return ResponseEntity.badRequest().body("Invalid review ID format");
-        }
+    public ResponseEntity<Review> updateReview(@PathVariable ObjectId id, @RequestBody Review review, Authentication authentication) {
+        Optional<Review> existingReview = reviewService.getReviewById(id);
 
-        return ResponseEntity.ok(reviewService.updateReview(new ObjectId(id), updatedReview));
+        if (existingReview.isPresent()) {
+            Review foundReview = existingReview.get();
+            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) ||
+                    foundReview.getUserId().equals(authentication.getName())) {
+                review.setId(id);
+                return ResponseEntity.ok(reviewService.updateReview(review));
+            } else {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
 
-    // ✅ Xóa đánh giá theo ID (chuyển đổi String -> ObjectId)
+    // ✅ USER: Xóa review của chính họ, ADMIN: Xóa bất kỳ review nào
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteReview(@PathVariable String id) {
-        if (!ObjectId.isValid(id)) {
-            return ResponseEntity.badRequest().body("Invalid review ID format");
-        }
+    public ResponseEntity<Void> deleteReview(@PathVariable ObjectId id, Authentication authentication) {
+        Optional<Review> existingReview = reviewService.getReviewById(id);
 
-        reviewService.deleteReview(new ObjectId(id));
-        return ResponseEntity.noContent().build();
+        if (existingReview.isPresent()) {
+            Review foundReview = existingReview.get();
+            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) ||
+                    foundReview.getUserId().equals(authentication.getName())) {
+                reviewService.deleteReview(id);
+                return ResponseEntity.noContent().build();
+            } else {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
 }
+
