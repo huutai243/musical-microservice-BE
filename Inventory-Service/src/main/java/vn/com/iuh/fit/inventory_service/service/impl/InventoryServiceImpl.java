@@ -1,30 +1,42 @@
 package vn.com.iuh.fit.inventory_service.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import vn.com.iuh.fit.inventory_service.dto.InventoryValidationItem;
 import vn.com.iuh.fit.inventory_service.entity.Inventory;
+import vn.com.iuh.fit.inventory_service.entity.OutboxEvent;
 import vn.com.iuh.fit.inventory_service.event.InventoryDeductionRequestEvent;
 import vn.com.iuh.fit.inventory_service.event.InventoryValidationResultEvent;
 import vn.com.iuh.fit.inventory_service.producer.InventoryProducer;
 import vn.com.iuh.fit.inventory_service.repository.InventoryRepository;
+import vn.com.iuh.fit.inventory_service.repository.OutboxEventRepository;
 import vn.com.iuh.fit.inventory_service.service.InventoryService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+@Slf4j
 @Service
 public class InventoryServiceImpl implements InventoryService {
     private final InventoryRepository inventoryRepository;
     private final InventoryProducer inventoryProducer;
     private static final Logger LOGGER = LoggerFactory.getLogger(InventoryServiceImpl.class);
+    private final ObjectMapper objectMapper;
+    private final OutboxEventRepository outboxEventRepository;
 
 
-    public InventoryServiceImpl(InventoryRepository inventoryRepository, InventoryProducer inventoryProducer) {
+    public InventoryServiceImpl(InventoryRepository inventoryRepository, InventoryProducer inventoryProducer,ObjectMapper objectMapper,OutboxEventRepository outboxEventRepository) {
         this.inventoryRepository = inventoryRepository;
         this.inventoryProducer = inventoryProducer;
+        this.objectMapper = objectMapper;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     @Override
@@ -94,9 +106,31 @@ public class InventoryServiceImpl implements InventoryService {
         }
 
         // Gửi kết quả kiểm tra tồn kho về `order-service`
-        inventoryProducer.sendInventoryValidationResult(
-                new InventoryValidationResultEvent(orderId, status, message, validatedItems)
-        );
+//        inventoryProducer.sendInventoryValidationResult(
+//                new InventoryValidationResultEvent(orderId, status, message, validatedItems)
+//        );
+        try {
+            String payload = objectMapper.writeValueAsString(
+                    new InventoryValidationResultEvent(orderId, status, message, validatedItems)
+            );
+
+            outboxEventRepository.save(
+                    OutboxEvent.builder()
+                            .id(UUID.randomUUID())
+                            .aggregateType("Inventory")
+                            .aggregateId(String.valueOf(orderId))
+                            .type("InventoryValidationResultEvent")
+                            .payload(payload)
+                            .status("PENDING")
+                            .createdAt(LocalDateTime.now())
+                            .build()
+            );
+
+            log.info("Đã ghi InventoryValidationResultEvent vào Outbox thành công cho orderId: {}", orderId);
+        } catch (JsonProcessingException e) {
+            log.error("Lỗi khi serialize InventoryValidationResultEvent", e);
+            throw new RuntimeException("Không thể serialize sự kiện kiểm tra tồn kho", e);
+        }
     }
 
     @Override

@@ -1,6 +1,9 @@
 package vn.com.iuh.fit.payment_service.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -8,6 +11,7 @@ import vn.com.iuh.fit.payment_service.client.OrderClient;
 import vn.com.iuh.fit.payment_service.dto.InternalPaymentRequestDTO;
 import vn.com.iuh.fit.payment_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.payment_service.dto.PaymentRequestDTO;
+import vn.com.iuh.fit.payment_service.entity.OutboxEvent;
 import vn.com.iuh.fit.payment_service.entity.Payment;
 import vn.com.iuh.fit.payment_service.entity.ProcessedEvent;
 import vn.com.iuh.fit.payment_service.enums.OrderStatus;
@@ -17,19 +21,19 @@ import vn.com.iuh.fit.payment_service.gateway.PayPalPaymentGateway;
 import vn.com.iuh.fit.payment_service.gateway.PaymentGateway;
 import vn.com.iuh.fit.payment_service.gateway.StripePaymentGateway;
 import vn.com.iuh.fit.payment_service.producer.PaymentProducer;
+import vn.com.iuh.fit.payment_service.repository.OutboxEventRepository;
 import vn.com.iuh.fit.payment_service.repository.PaymentRepository;
 import vn.com.iuh.fit.payment_service.repository.ProcessedEventRepository;
 import vn.com.iuh.fit.payment_service.service.PaymentService;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.UUID;
 
+@Slf4j
 @Service
 public class PaymentServiceImpl implements PaymentService {
-
-    private static final Logger log = Logger.getLogger(PaymentServiceImpl.class.getName());
-
+    
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private KafkaTemplate<String, Object> kafkaTemplate;
     @Autowired private StripePaymentGateway stripePaymentGateway;
@@ -37,6 +41,8 @@ public class PaymentServiceImpl implements PaymentService {
     @Autowired private PaymentProducer paymentProducer;
     @Autowired private OrderClient orderClient;
     @Autowired private ProcessedEventRepository processedEventRepository;
+    @Autowired private OutboxEventRepository outboxEventRepository;
+    @Autowired private ObjectMapper objectMapper;
 
 
 
@@ -50,7 +56,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         //  Check đã xử lý chưa
         if (processedEventRepository.existsById(eventId)) {
-            log.warning(" Đã xử lý thanh toán trước đó! eventId = " + eventId);
+            log.warn(" Đã xử lý thanh toán trước đó! eventId = {}", eventId);
             return paymentRepository.findByOrderId(orderId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán đã xử lý"));
         }
@@ -101,15 +107,34 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
         paymentRepository.save(payment);
         //7. Gửi event kết quả payment về order
-        paymentProducer.sendPaymentResultEvent(PaymentResultEvent.builder()
-                .orderId(payment.getOrderId())
-                .userId(payment.getUserId())
-                .amount(payment.getAmount())
-                .paymentMethod(payment.getPaymentMethod())
-                .success(success)
-                .message(success ? "SUCCESS" : "FAILED")
-                .timestamp(payment.getCreatedAt())
-                .build());
+        try {
+            String payload = objectMapper.writeValueAsString(PaymentResultEvent.builder()
+                    .orderId(payment.getOrderId())
+                    .userId(payment.getUserId())
+                    .amount(payment.getAmount())
+                    .paymentMethod(payment.getPaymentMethod())
+                    .success(success)
+                    .message(success ? "SUCCESS" : "FAILED")
+                    .timestamp(payment.getCreatedAt())
+                    .build());
+
+            outboxEventRepository.save(OutboxEvent.builder()
+                    .id(UUID.randomUUID())
+                    .aggregateType("Payment")
+                    .aggregateId(String.valueOf(orderId))
+                    .type("PaymentResultEvent")
+                    .payload(payload)
+                    .status("PENDING")
+                    .createdAt(LocalDateTime.now())
+                    .build());
+
+            log.info("Đã lưu PaymentResultEvent vào Outbox");
+
+        } catch (JsonProcessingException e) {
+            log.error("Lỗi serialize PaymentResultEvent", e);
+            throw new RuntimeException("Không thể serialize PaymentResultEvent", e);
+        }
+
         return payment;
     }
 
