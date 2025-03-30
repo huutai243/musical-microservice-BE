@@ -5,12 +5,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.iuh.notification_service.client.EmailClient;
-import vn.com.iuh.fit.iuh.notification_service.dto.EmailRequest;
 import vn.com.iuh.fit.iuh.notification_service.entity.Notification;
+import vn.com.iuh.fit.iuh.notification_service.entity.ProcessedEvent;
 import vn.com.iuh.fit.iuh.notification_service.event.NotificationOrderEvent;
 import vn.com.iuh.fit.iuh.notification_service.repository.NotificationRepository;
+import vn.com.iuh.fit.iuh.notification_service.repository.ProcessedEventRepository;
 import vn.com.iuh.fit.iuh.notification_service.service.EmailService;
 import vn.com.iuh.fit.iuh.notification_service.service.NotificationService;
+
+import java.time.LocalDateTime;
 
 
 @RequiredArgsConstructor
@@ -21,8 +24,23 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository repository;
     private final EmailClient emailClient;
     private final EmailService emailService;
+    private final ProcessedEventRepository processedEventRepository;
+
     @Override
     public void handleNotification(NotificationOrderEvent event) {
+
+        String eventId = "notification-order-" + event.getOrderId();
+
+        // Nếu đã xử lý → bỏ qua
+        if (processedEventRepository.existsById(eventId)) {
+            log.warn(" Event đã xử lý rồi: {}", eventId);
+            return;
+        }
+
+        //  Lưu eventId để đánh dấu đã xử lý
+        processedEventRepository.save(
+                new ProcessedEvent(eventId, LocalDateTime.now())
+        );
         // 1. Lưu vào MongoDB
         Notification notification = Notification.builder()
                 .userId(event.getUserId())

@@ -1,22 +1,28 @@
 package vn.com.iuh.fit.order_service.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.entity.OrderItem;
+import vn.com.iuh.fit.order_service.entity.OutboxEvent;
+import vn.com.iuh.fit.order_service.entity.ProcessedEvent;
 import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
 import vn.com.iuh.fit.order_service.event.*;
 import vn.com.iuh.fit.order_service.producer.OrderProducer;
 import vn.com.iuh.fit.order_service.repository.OrderItemRepository;
 import vn.com.iuh.fit.order_service.repository.OrderRepository;
+import vn.com.iuh.fit.order_service.repository.OutboxEventRepository;
+import vn.com.iuh.fit.order_service.repository.ProcessedEventRepository;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,13 +32,22 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final OrderProducer orderProducer;
+    private final ProcessedEventRepository processedEventRepository;
+    private final ObjectMapper objectMapper;
+    private final OutboxEventRepository outboxEventRepository;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
-                            OrderProducer orderProducer) {
+                            OrderProducer orderProducer,
+                            ProcessedEventRepository processedEventRepository,
+                            ObjectMapper objectMapper,
+                            OutboxEventRepository outboxEventRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderProducer = orderProducer;
+        this.processedEventRepository = processedEventRepository;
+        this.objectMapper = objectMapper;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     /**
@@ -42,6 +57,20 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void createOrderFromCheckout(CheckoutEventDTO checkoutEvent) {
         log.info(" Nhận Checkout Event từ Kafka: {}", checkoutEvent);
+         // Nếu đơn hàng đã được xử lí thì bỏ qua
+        if (processedEventRepository.existsById(checkoutEvent.getEventId())) {
+            log.warn("CheckoutEvent đã xử lý trước đó! eventId = {}", checkoutEvent.getEventId());
+            return;
+        }
+
+        //Lưu eventId để mark là đã xử lý
+        processedEventRepository.save(
+                new ProcessedEvent(
+                        checkoutEvent.getEventId(),
+                        checkoutEvent.getCorrelationId(),
+                        LocalDateTime.now()
+                )
+        );
 
         // Đơn hàng với trạng thái "PENDING_INVENTORY_VALIDATION"
         Order savedOrder = orderRepository.save(
@@ -73,25 +102,62 @@ public class OrderServiceImpl implements OrderService {
         log.info(" Đã lưu {} sản phẩm vào OrderItems.", orderItems.size());
 
         // Gửi sự kiện kiểm tra tồn kho
-        ValidateInventoryEvent inventoryEvent = new ValidateInventoryEvent(
-                orderId,
-                checkoutEvent.getUserId(),
-                orderItems.stream()
-                        .map(item -> new ValidateInventoryEvent.Item(
-                                item.getProductId(),
-                                item.getQuantity(),
-                                "PENDING"
-                        ))
-                        .collect(Collectors.toList())
-        );
+        try {
+            ValidateInventoryEvent inventoryEvent = new ValidateInventoryEvent(
+                    orderId,
+                    checkoutEvent.getUserId(),
+                    orderItems.stream()
+                            .map(item -> new ValidateInventoryEvent.Item(
+                                    item.getProductId(),
+                                    item.getQuantity(),
+                                    "PENDING"
+                            ))
+                            .collect(Collectors.toList())
+            );
 
-        orderProducer.sendInventoryValidationEvent(inventoryEvent);
+            String payload = objectMapper.writeValueAsString(inventoryEvent);
+
+            outboxEventRepository.save(
+                    OutboxEvent.builder()
+                            .id(UUID.randomUUID())
+                            .aggregateType("Order")
+                            .aggregateId(String.valueOf(orderId))
+                            .type("ValidateInventoryEvent")
+                            .payload(payload)
+                            .status("PENDING")
+                            .createdAt(LocalDateTime.now())
+                            .build()
+            );
+
+            log.info(" Ghi sự kiện kiểm tra tồn kho vào Outbox thành công cho Order #{}", orderId);
+
+        } catch (Exception e) {
+            log.error(" Lỗi serialize hoặc lưu Outbox ValidateInventoryEvent", e);
+            throw new RuntimeException("Lỗi tạo sự kiện tồn kho từ đơn hàng", e);
+        }
+
+//        orderProducer.sendInventoryValidationEvent(inventoryEvent);
     }
 
     @Override
     @Transactional
     public void handleInventoryValidationResult(InventoryValidationResultEvent event) {
         log.info(" Xử lý kết quả kiểm tra tồn kho cho đơn hàng #{}", event.getOrderId());
+
+        //Idempotency
+        String eventId = "INVENTORY_RESULT_" + event.getOrderId();
+
+        if (processedEventRepository.existsById(eventId)) {
+            log.warn("InventoryValidationResultEvent đã xử lý trước đó! eventId = {}", eventId);
+            return;
+        }
+
+        processedEventRepository.save(new ProcessedEvent(
+                eventId,
+                null,
+                LocalDateTime.now()
+        ));
+
         Order order = orderRepository.findById(event.getOrderId())
                 .orElseThrow(() -> new RuntimeException(" Không tìm thấy đơn hàng #" + event.getOrderId()));
 
@@ -130,13 +196,31 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void handlePaymentResult(PaymentResultEvent event) {
-        log.info(" Xử lý kết quả thanh toán cho đơn hàng #{}", event.getOrderId());
+        log.info("Xử lý kết quả thanh toán cho đơn hàng #{}", event.getOrderId());
+       // Idempotency
+        String eventId = "PAYMENT_RESULT_" + event.getOrderId();
+
+        // Idempotency check
+        if (processedEventRepository.existsById(eventId)) {
+            log.warn("PaymentResultEvent đã xử lý trước đó! eventId = {}", eventId);
+            return;
+        }
+
+        // Save to mark processed
+        processedEventRepository.save(new ProcessedEvent(
+                eventId,
+                null, // No correlationId
+                LocalDateTime.now()
+        ));
 
         Order order = orderRepository.findById(event.getOrderId())
-                .orElseThrow(() -> new RuntimeException(" Không tìm thấy đơn hàng #" + event.getOrderId()));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng #" + event.getOrderId()));
+
         if (event.isSuccess()) {
             order.setStatus(OrderStatus.PAYMENT_SUCCESS);
-            log.info(" Đơn hàng #{} thanh toán thành công. Chuyển sang trạng thái PAYMENT_SUCCESS.", order.getId());
+            log.info("Đơn hàng #{} thanh toán thành công. Chuyển sang PAYMENT_SUCCESS.", order.getId());
+
+            // --- 1. Tạo sự kiện trừ kho ---
             InventoryDeductionRequestEvent inventoryEvent = InventoryDeductionRequestEvent.builder()
                     .orderId(order.getId())
                     .userId(order.getUserId())
@@ -149,9 +233,7 @@ public class OrderServiceImpl implements OrderService {
                             .collect(Collectors.toList()))
                     .build();
 
-            orderProducer.sendInventoryDeductionRequest(inventoryEvent);
-            log.info("Gửi event đến inventory để cập nhật số lượng");
-
+            // --- 2. Tạo sự kiện gửi thông báo ---
             NotificationOrderEvent notificationEvent = NotificationOrderEvent.builder()
                     .userId(order.getUserId())
                     .orderId(order.getId())
@@ -163,10 +245,46 @@ public class OrderServiceImpl implements OrderService {
                     .totalAmount(order.getTotalPrice())
                     .timestamp(Instant.now())
                     .build();
-            orderProducer.sendNotificationOrderEvent(notificationEvent);
+
+            try {
+                // --- 3. Ghi vào OutboxEvent ---
+                String inventoryPayload = objectMapper.writeValueAsString(inventoryEvent);
+                String notificationPayload = objectMapper.writeValueAsString(notificationEvent);
+
+                outboxEventRepository.save(
+                        OutboxEvent.builder()
+                                .id(UUID.randomUUID())
+                                .aggregateType("Order")
+                                .aggregateId(String.valueOf(order.getId()))
+                                .type("InventoryDeductionEvent")
+                                .payload(inventoryPayload)
+                                .status("PENDING")
+                                .createdAt(LocalDateTime.now())
+                                .build()
+                );
+
+                outboxEventRepository.save(
+                        OutboxEvent.builder()
+                                .id(UUID.randomUUID())
+                                .aggregateType("Order")
+                                .aggregateId(String.valueOf(order.getId()))
+                                .type("NotificationEvent")
+                                .payload(notificationPayload)
+                                .status("PENDING")
+                                .createdAt(LocalDateTime.now())
+                                .build()
+                );
+
+                log.info(" Ghi sự kiện vào Outbox thành công cho Order #{}", order.getId());
+
+            } catch (Exception ex) {
+                log.error(" Lỗi ghi OutboxEvent: {}", ex.getMessage(), ex);
+                throw new RuntimeException("Không thể serialize/gửi sự kiện hậu thanh toán", ex);
+            }
+
         } else {
             order.setStatus(OrderStatus.PAYMENT_FAILED);
-            log.info(" Đơn hàng #{} thanh toán thất bại. Chuyển sang trạng thái PAYMENT_FAILED.", order.getId());
+            log.info("Đơn hàng #{} thanh toán thất bại. Chuyển sang PAYMENT_FAILED.", order.getId());
         }
 
         orderRepository.save(order);

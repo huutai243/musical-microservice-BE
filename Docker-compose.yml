@@ -52,6 +52,9 @@ services:  # 1. Eureka Service
       SPRING_DATASOURCE_PASSWORD: password
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
       EUREKA_INSTANCE_HOSTNAME: auth-service
+      JWT_SECRET: z6NcAZXi9+HYC6ByT+uG+73PdgAHQomW0s7EnpAY+Ns=
+      JWT_ACCESS_TOKEN_EXPIRATION: 604800000
+      JWT_REFRESH_TOKEN_EXPIRATION: 604800000
     networks:
       - microservice-net
 

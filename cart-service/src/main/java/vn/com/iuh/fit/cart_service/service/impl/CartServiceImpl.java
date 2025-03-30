@@ -1,5 +1,7 @@
 package vn.com.iuh.fit.cart_service.service.impl;
 
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,15 +11,21 @@ import vn.com.iuh.fit.cart_service.client.ProductClient;
 import vn.com.iuh.fit.cart_service.dto.CartItemDTO;
 import vn.com.iuh.fit.cart_service.dto.ProductDTO;
 import vn.com.iuh.fit.cart_service.entity.CartItem;
+import vn.com.iuh.fit.cart_service.entity.OutboxEvent;
 import vn.com.iuh.fit.cart_service.event.CheckoutEvent;
 import vn.com.iuh.fit.cart_service.producer.CartProducer;
 import vn.com.iuh.fit.cart_service.repository.CartRepository;
+import vn.com.iuh.fit.cart_service.repository.OutboxEventRepository;
 import vn.com.iuh.fit.cart_service.service.CartService;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class CartServiceImpl implements CartService {
 
@@ -26,15 +34,17 @@ public class CartServiceImpl implements CartService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final CartProducer cartProducer;
+    private final OutboxEventRepository outboxEventRepository;
 
 
     @Autowired
-    public CartServiceImpl(CartRepository cartRepository, ProductClient productClient, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, CartProducer cartProducer) {
+    public CartServiceImpl(CartRepository cartRepository, ProductClient productClient, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, CartProducer cartProducer, OutboxEventRepository outboxEventRepository) {
         this.cartRepository = cartRepository;
         this.productClient = productClient;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.cartProducer = cartProducer;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     @Override
@@ -130,6 +140,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Transactional
     public CheckoutEvent checkout(String userId) throws Exception {
         String key = "cart:" + userId;
         List<CartItemDTO> cartItems = redisTemplate.opsForHash().values(key).stream()
@@ -140,28 +151,52 @@ public class CartServiceImpl implements CartService {
                         return null;
                     }
                 })
-                .filter(item -> item != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         if (cartItems.isEmpty()) {
-            throw new Exception(" Giỏ hàng trống!");
+            throw new Exception("Giỏ hàng trống!");
         }
 
+        // 1. Tính tổng tiền
         double totalPrice = cartItems.stream()
                 .mapToDouble(item -> item.getPrice() * item.getRequestedQuantity())
                 .sum();
+
+        // 2. Tạo sự kiện CheckoutEvent
         CheckoutEvent event = new CheckoutEvent(
-                java.util.UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), // eventId
                 userId,
                 cartItems,
                 totalPrice,
                 "PENDING",
                 System.currentTimeMillis(),
-                java.util.UUID.randomUUID().toString()
+                UUID.randomUUID().toString()  // correlationId
         );
-        cartProducer.sendCheckoutEvent(event);
+
+        // 3. Serialize payload
+        String payload = objectMapper.writeValueAsString(event);
+
+        // 4. Lưu vào Outbox
+        outboxEventRepository.save(
+                OutboxEvent.builder()
+                        .id(UUID.randomUUID())
+                        .aggregateType("Cart")
+                        .aggregateId(userId)
+                        .type("CheckoutEvent")
+                        .payload(payload)
+                        .status("PENDING")
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
+
+        log.info(" Lưu CheckoutEvent vào Outbox thành công cho user {}", userId);
+
+        // 5. Xoá giỏ hàng sau khi thành công
         redisTemplate.delete(key);
+
         return event;
     }
+
 
 }
