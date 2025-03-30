@@ -9,6 +9,7 @@ import vn.com.iuh.fit.payment_service.dto.InternalPaymentRequestDTO;
 import vn.com.iuh.fit.payment_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.payment_service.dto.PaymentRequestDTO;
 import vn.com.iuh.fit.payment_service.entity.Payment;
+import vn.com.iuh.fit.payment_service.entity.ProcessedEvent;
 import vn.com.iuh.fit.payment_service.enums.OrderStatus;
 import vn.com.iuh.fit.payment_service.enums.PaymentStatus;
 import vn.com.iuh.fit.payment_service.event.PaymentResultEvent;
@@ -17,6 +18,7 @@ import vn.com.iuh.fit.payment_service.gateway.PaymentGateway;
 import vn.com.iuh.fit.payment_service.gateway.StripePaymentGateway;
 import vn.com.iuh.fit.payment_service.producer.PaymentProducer;
 import vn.com.iuh.fit.payment_service.repository.PaymentRepository;
+import vn.com.iuh.fit.payment_service.repository.ProcessedEventRepository;
 import vn.com.iuh.fit.payment_service.service.PaymentService;
 
 import java.time.LocalDateTime;
@@ -34,13 +36,28 @@ public class PaymentServiceImpl implements PaymentService {
     @Autowired private PayPalPaymentGateway paypalPaymentGateway;
     @Autowired private PaymentProducer paymentProducer;
     @Autowired private OrderClient orderClient;
+    @Autowired private ProcessedEventRepository processedEventRepository;
 
 
 
     @Override
     @Transactional
     public Payment processPayment(PaymentRequestDTO paymentRequest) {
-        log.info("Xử lý thanh toán cho Order #" + paymentRequest.getOrderId());
+        Long orderId = paymentRequest.getOrderId();
+        String eventId = "payment-order-" + orderId;
+
+        log.info("Xử lý thanh toán cho Order #" + orderId);
+
+        //  Check đã xử lý chưa
+        if (processedEventRepository.existsById(eventId)) {
+            log.warning(" Đã xử lý thanh toán trước đó! eventId = " + eventId);
+            return paymentRepository.findByOrderId(orderId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán đã xử lý"));
+        }
+
+        //  Lưu eventId vào DB để đánh dấu đã xử lý
+        processedEventRepository.save(new ProcessedEvent(eventId, LocalDateTime.now()));
+
 
         // 1. Gọi sang OrderService để lấy thông tin đơn hàng
         OrderResponseDTO order = orderClient.getOrderById(paymentRequest.getOrderId());

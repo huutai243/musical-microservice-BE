@@ -6,12 +6,14 @@ import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.entity.OrderItem;
+import vn.com.iuh.fit.order_service.entity.ProcessedEvent;
 import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
 import vn.com.iuh.fit.order_service.event.*;
 import vn.com.iuh.fit.order_service.producer.OrderProducer;
 import vn.com.iuh.fit.order_service.repository.OrderItemRepository;
 import vn.com.iuh.fit.order_service.repository.OrderRepository;
+import vn.com.iuh.fit.order_service.repository.ProcessedEventRepository;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
 import java.time.Instant;
@@ -26,13 +28,16 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final OrderProducer orderProducer;
+    private final ProcessedEventRepository processedEventRepository;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
-                            OrderProducer orderProducer) {
+                            OrderProducer orderProducer,
+                            ProcessedEventRepository processedEventRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderProducer = orderProducer;
+        this.processedEventRepository = processedEventRepository;
     }
 
     /**
@@ -42,6 +47,20 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void createOrderFromCheckout(CheckoutEventDTO checkoutEvent) {
         log.info(" Nhận Checkout Event từ Kafka: {}", checkoutEvent);
+         // Nếu đơn hàng đã được xử lí thì bỏ qua
+        if (processedEventRepository.existsById(checkoutEvent.getEventId())) {
+            log.warn("CheckoutEvent đã xử lý trước đó! eventId = {}", checkoutEvent.getEventId());
+            return;
+        }
+
+        //Lưu eventId để mark là đã xử lý
+        processedEventRepository.save(
+                new ProcessedEvent(
+                        checkoutEvent.getEventId(),
+                        checkoutEvent.getCorrelationId(),
+                        LocalDateTime.now()
+                )
+        );
 
         // Đơn hàng với trạng thái "PENDING_INVENTORY_VALIDATION"
         Order savedOrder = orderRepository.save(
