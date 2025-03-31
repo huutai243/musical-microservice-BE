@@ -7,8 +7,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.com.iuh.fit.order_service.config.JwtAuthFilter;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
+import vn.com.iuh.fit.order_service.dto.OrderCorrelationResponseDTO;
+import vn.com.iuh.fit.order_service.dto.OrderItemResponseDTO;
 import vn.com.iuh.fit.order_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
+import vn.com.iuh.fit.order_service.repository.OrderRepository;
 import vn.com.iuh.fit.order_service.service.OrderService;
 
 import java.security.Principal;
@@ -21,6 +24,9 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     @Value("${jwt.secret}")
     private String jwtSecret;
 
@@ -32,6 +38,14 @@ public class OrderController {
     public ResponseEntity<Void> createOrder(@RequestBody CheckoutEventDTO checkoutEvent) {
         orderService.createOrderFromCheckout(checkoutEvent);
         return ResponseEntity.ok().build();
+    }
+
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @GetMapping("/get-by-correlation/{cid}")
+    public ResponseEntity<OrderCorrelationResponseDTO> getOrderByCorrelation(@PathVariable String cid) {
+        return orderRepository.findByCorrelationId(cid)
+                .map(order -> ResponseEntity.ok(convertToOrderCorrelationDTO(order)))
+                .orElseGet(() -> ResponseEntity.status(404).build());
     }
 
     /**
@@ -112,6 +126,7 @@ public class OrderController {
         orderService.deliverOrder(orderId);
         return ResponseEntity.ok().build();
     }
+
     private OrderResponseDTO convertToDTO(Order order) {
         return new OrderResponseDTO(
                 order.getId(),
@@ -120,5 +135,29 @@ public class OrderController {
                 order.getStatus()
         );
     }
+
+    private OrderCorrelationResponseDTO convertToOrderCorrelationDTO(Order order) {
+        List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
+                .map(item -> new OrderItemResponseDTO(
+                        item.getProductId(),
+                        item.getName(),
+                        item.getPrice(),
+                        item.getQuantity(),
+                        item.getImageUrl(),
+                        item.getStatus()
+                ))
+                .toList();
+
+        return new OrderCorrelationResponseDTO(
+                order.getId(),
+                order.getUserId(),
+                order.getTotalPrice(),
+                order.getStatus(),
+                order.getCorrelationId(),
+                order.getCreatedAt(),
+                itemDTOs
+        );
+    }
+
 
 }
