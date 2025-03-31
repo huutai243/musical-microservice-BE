@@ -25,29 +25,43 @@ public class OutboxScheduler {
 
     @Scheduled(fixedDelay = 3000)
     public void publishOutboxEvents() {
+        log.info("[OutboxScheduler] Bắt đầu kiểm tra sự kiện PENDING...");
         List<OutboxEvent> events = outboxEventRepository.findByStatus("PENDING");
+        log.info("[OutboxScheduler] Số lượng sự kiện PENDING: {}", events.size());
+
         for (OutboxEvent event : events) {
             try {
+                log.info("[OutboxScheduler] Đang xử lý OutboxEvent ID={}, Type={}", event.getId(), event.getType());
+
                 switch (event.getType()) {
                     case "ValidateInventoryEvent" -> {
+                        log.info("[OutboxScheduler] Gửi ValidateInventoryEvent tới Kafka topic: inventory-validation-events");
                         ValidateInventoryEvent payload = objectMapper.readValue(event.getPayload(), ValidateInventoryEvent.class);
                         kafkaTemplate.send("inventory-validation-events", payload);
+                        log.info("[OutboxScheduler] Gửi thành công ValidateInventoryEvent: orderId={}", payload.getOrderId());
                     }
                     case "InventoryDeductionEvent" -> {
+                        log.info("[OutboxScheduler] Gửi InventoryDeductionEvent tới Kafka topic: inventory-deduction-events");
                         InventoryDeductionRequestEvent payload = objectMapper.readValue(event.getPayload(), InventoryDeductionRequestEvent.class);
                         kafkaTemplate.send("inventory-deduction-events", payload);
+                        log.info("[OutboxScheduler] Gửi thành công InventoryDeductionEvent: orderId={}", payload.getOrderId());
                     }
                     case "NotificationEvent" -> {
+                        log.info("[OutboxScheduler] Gửi NotificationEvent tới Kafka topic: notification-events");
                         NotificationOrderEvent payload = objectMapper.readValue(event.getPayload(), NotificationOrderEvent.class);
                         kafkaTemplate.send("notification-events", payload);
+                        log.info("[OutboxScheduler] Gửi thành công NotificationEvent: orderId={}", payload.getOrderId());
                     }
+                    default -> log.warn("[OutboxScheduler] Loại sự kiện không xác định: {}", event.getType());
                 }
 
                 event.setStatus("SENT");
                 event.setProcessedAt(LocalDateTime.now());
                 outboxEventRepository.save(event);
+                log.info("[OutboxScheduler] Đã cập nhật trạng thái OutboxEvent ID={} thành SENT", event.getId());
+
             } catch (Exception e) {
-                log.error("Lỗi gửi OutboxEvent: {}", event.getId(), e);
+                log.error("[OutboxScheduler] Lỗi gửi OutboxEvent ID={}: {}", event.getId(), e.getMessage(), e);
             }
         }
     }

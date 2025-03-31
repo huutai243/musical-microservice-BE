@@ -76,6 +76,7 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepository.save(
                 Order.builder()
                         .userId(checkoutEvent.getUserId())
+                        .correlationId(checkoutEvent.getCorrelationId())
                         .totalPrice(checkoutEvent.getTotalPrice())
                         .status(OrderStatus.PENDING_INVENTORY_VALIDATION)
                         .createdAt(LocalDateTime.now())

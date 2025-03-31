@@ -20,6 +20,9 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "correlation_id", unique = true)
+    private String correlationId;
+
     private String userId;
     private Double totalPrice;
 
