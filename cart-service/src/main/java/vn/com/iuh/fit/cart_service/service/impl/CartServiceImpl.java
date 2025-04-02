@@ -192,8 +192,8 @@ public class CartServiceImpl implements CartService {
 
         log.info(" Lưu CheckoutEvent vào Outbox thành công cho user {}", userId);
 
-        // 5. Xoá giỏ hàng sau khi thành công
-        redisTemplate.delete(key);
+//        // 5. Xoá giỏ hàng sau khi thành công
+//        redisTemplate.delete(key);
 
         return event;
     }
