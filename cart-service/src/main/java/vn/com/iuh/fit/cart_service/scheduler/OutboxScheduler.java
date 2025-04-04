@@ -24,30 +24,18 @@ public class OutboxScheduler {
 
     @Scheduled(fixedDelay = 3000)
     public void publishOutboxEvents() {
-        log.info("[OutboxScheduler] Bắt đầu kiểm tra sự kiện PENDING...");
         List<OutboxEvent> events = outboxEventRepository.findByStatus("PENDING");
-
-        log.info("[OutboxScheduler] Số lượng sự kiện PENDING: {}", events.size());
-
         for (OutboxEvent event : events) {
             try {
-                log.info("[OutboxScheduler] Đang xử lý OutboxEvent ID={}, Type={}", event.getId(), event.getType());
-
                 if ("CheckoutEvent".equals(event.getType())) {
                     CheckoutEvent payload = objectMapper.readValue(event.getPayload(), CheckoutEvent.class);
-                    log.info("[OutboxScheduler] Đang gửi sự kiện CheckoutEvent đến Kafka topic: checkout-events");
                     kafkaTemplate.send("checkout-events", payload);
-                    log.info("[OutboxScheduler] Gửi thành công sự kiện CheckoutEvent: {}", payload.getEventId());
                 }
-
                 event.setStatus("SENT");
                 event.setProcessedAt(LocalDateTime.now());
                 outboxEventRepository.save(event);
 
-                log.info("[OutboxScheduler] Cập nhật trạng thái sự kiện ID={} thành SENT", event.getId());
-
             } catch (Exception e) {
-                log.error("[OutboxScheduler] Lỗi khi xử lý sự kiện ID={}: {}", event.getId(), e.getMessage(), e);
             }
         }
     }

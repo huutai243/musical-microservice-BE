@@ -1,17 +1,17 @@
 version: "3.8"
 
 services:
-#  elasticsearch:
-#    image: alpine
-#    container_name: dummy-elasticsearch
-#    command: ["sleep", "infinity"]
-#    ports: []
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: "0"
-#          memory: "0M"
-
+##  elasticsearch:
+##    image: alpine
+##    container_name: dummy-elasticsearch
+##    command: ["sleep", "infinity"]
+##    ports: []
+##    deploy:
+##      resources:
+##        limits:
+##          cpus: "0"
+##          memory: "0M"
+#
   kibana:
     image: alpine
     container_name: dummy-kibana
@@ -23,13 +23,13 @@ services:
           cpus: "0"
           memory: "0M"
 
-#  user-service:
-#    image: alpine
-#    container_name: dummy-user-service
-#    command: ["sleep", "infinity"]
-#    ports: []
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: "0"
-#          memory: "0M"
+  user-service:
+    image: alpine
+    container_name: dummy-user-service
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"

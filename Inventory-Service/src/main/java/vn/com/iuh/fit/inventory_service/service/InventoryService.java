@@ -10,6 +10,4 @@ public interface InventoryService {
     void updateStock(Long productId, int quantity);
     void validateInventory(Long orderId, List<InventoryValidationItem> items);
     void deductStock(Long orderId, List<InventoryDeductionRequestEvent.ProductQuantity> products);
-    void reserveStock(Long orderId, List<InventoryValidationItem> items);
-    void releaseStock(Long orderId, List<InventoryValidationItem> items);
 }
