@@ -198,5 +198,18 @@ public class CartServiceImpl implements CartService {
         return event;
     }
 
+    @Override
+    public void clearCartByUserId(String userId) {
+        String key = "cart:" + userId;
+        Boolean deleted = redisTemplate.delete(key);
+
+        if (Boolean.TRUE.equals(deleted)) {
+            log.info(" Đã xoá giỏ hàng của userId: {}", userId);
+        } else {
+            log.warn(" Không tìm thấy giỏ hàng để xoá cho userId: {}", userId);
+        }
+    }
+
+
 
 }

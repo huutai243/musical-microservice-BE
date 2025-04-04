@@ -12,4 +12,5 @@ public interface CartService {
     void clearCart(String userId);
     void mergeGuestCartToUserCart(String guestId, String userId) throws Exception;
     CheckoutEvent checkout(String userId) throws Exception;
+    void clearCartByUserId(String userId);
 }
