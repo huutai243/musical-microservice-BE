@@ -23,13 +23,8 @@ public class OutboxScheduler {
 
     @Scheduled(fixedDelay = 3000)
     public void publishOutboxEvents() {
-        log.info("[OutboxScheduler] Bắt đầu kiểm tra sự kiện PENDING...");
         List<OutboxEvent> events = outboxEventRepository.findByStatus("PENDING");
-
-        log.info("[OutboxScheduler] Số lượng sự kiện PENDING: {}", events.size());
-
         for (OutboxEvent event : events) {
-            log.info("[OutboxScheduler] Đang xử lý OutboxEvent ID={}, Type={}", event.getId(), event.getType());
             try {
                 switch (event.getType()) {
                     case "InventoryValidationResultEvent" -> {
@@ -37,7 +32,6 @@ public class OutboxScheduler {
                                 event.getPayload(), InventoryValidationResultEvent.class
                         );
                         kafkaTemplate.send("inventory-validation-result", payload);
-                        log.info("[OutboxScheduler] Gửi thành công InventoryValidationResultEvent: orderId={}", payload.getOrderId());
                     }
                     default -> log.warn("[OutboxScheduler] Loại sự kiện không hỗ trợ: {}", event.getType());
                 }
@@ -45,9 +39,7 @@ public class OutboxScheduler {
                 event.setStatus("SENT");
                 event.setProcessedAt(LocalDateTime.now());
                 outboxEventRepository.save(event);
-                log.info("[OutboxScheduler] Đã cập nhật trạng thái OutboxEvent ID={} thành SENT", event.getId());
             } catch (Exception e) {
-                log.error("[OutboxScheduler] Lỗi gửi OutboxEvent ID={}: {}", event.getId(), e.getMessage(), e);
             }
         }
     }

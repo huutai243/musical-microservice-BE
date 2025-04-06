@@ -21,7 +21,6 @@ import java.util.UUID;
 public class OutboxEvent {
     @Id
     private UUID id;
-
     private String aggregateType;
     private String aggregateId;
     private String type;
