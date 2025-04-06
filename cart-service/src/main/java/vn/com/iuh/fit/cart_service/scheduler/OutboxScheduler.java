@@ -22,7 +22,7 @@ public class OutboxScheduler {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
-    @Scheduled(fixedDelay = 3000)
+    @Scheduled(fixedDelay = 500)
     public void publishOutboxEvents() {
         List<OutboxEvent> events = outboxEventRepository.findByStatus("PENDING");
         for (OutboxEvent event : events) {
