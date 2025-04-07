@@ -194,24 +194,116 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
     }
 
+//    @Override
+//    @Transactional
+//    public void handlePaymentResult(PaymentResultEvent event) {
+//        log.info("Xử lý kết quả thanh toán cho đơn hàng #{}", event.getOrderId());
+//       // Idempotency
+//        String eventId = "PAYMENT_RESULT_" + event.getOrderId();
+//
+//        // Idempotency check
+//        if (processedEventRepository.existsById(eventId)) {
+//            log.warn("PaymentResultEvent đã xử lý trước đó! eventId = {}", eventId);
+//            return;
+//        }
+//
+//        // Save to mark processed
+//        processedEventRepository.save(new ProcessedEvent(
+//                eventId,
+//                null, // No correlationId
+//                LocalDateTime.now()
+//        ));
+//
+//        Order order = orderRepository.findById(event.getOrderId())
+//                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng #" + event.getOrderId()));
+//
+//        if (event.isSuccess()) {
+//            order.setStatus(OrderStatus.PAYMENT_SUCCESS);
+//            log.info("Đơn hàng #{} thanh toán thành công. Chuyển sang PAYMENT_SUCCESS.", order.getId());
+//
+//            // --- 1. Tạo sự kiện trừ kho ---
+//            InventoryDeductionRequestEvent inventoryEvent = InventoryDeductionRequestEvent.builder()
+//                    .orderId(order.getId())
+//                    .userId(order.getUserId())
+//                    .reason("ORDER_PAID")
+//                    .products(order.getItems().stream()
+//                            .map(item -> InventoryDeductionRequestEvent.ProductQuantity.builder()
+//                                    .productId(item.getProductId())
+//                                    .quantity(item.getQuantity())
+//                                    .build())
+//                            .collect(Collectors.toList()))
+//                    .build();
+//
+//            // --- 2. Tạo sự kiện gửi thông báo ---
+//            NotificationOrderEvent notificationEvent = NotificationOrderEvent.builder()
+//                    .userId(order.getUserId())
+//                    .orderId(order.getId())
+//                    .status(OrderStatus.PAYMENT_SUCCESS.name())
+//                    .title("Đặt hàng thành công!")
+//                    .message("Đơn hàng #" + order.getId() + " đã được thanh toán thành công với tổng tiền " +
+//                            order.getTotalPrice() + " VNĐ. Phương thức thanh toán: " + event.getPaymentMethod())
+//                    .paymentMethod(event.getPaymentMethod())
+//                    .totalAmount(order.getTotalPrice())
+//                    .timestamp(Instant.now())
+//                    .build();
+//
+//            try {
+//                // --- 3. Ghi vào OutboxEvent ---
+//                String inventoryPayload = objectMapper.writeValueAsString(inventoryEvent);
+//                String notificationPayload = objectMapper.writeValueAsString(notificationEvent);
+//
+//                outboxEventRepository.save(
+//                        OutboxEvent.builder()
+//                                .id(UUID.randomUUID())
+//                                .aggregateType("Order")
+//                                .aggregateId(String.valueOf(order.getId()))
+//                                .type("InventoryDeductionEvent")
+//                                .payload(inventoryPayload)
+//                                .status("PENDING")
+//                                .createdAt(LocalDateTime.now())
+//                                .build()
+//                );
+//
+//                outboxEventRepository.save(
+//                        OutboxEvent.builder()
+//                                .id(UUID.randomUUID())
+//                                .aggregateType("Order")
+//                                .aggregateId(String.valueOf(order.getId()))
+//                                .type("NotificationEvent")
+//                                .payload(notificationPayload)
+//                                .status("PENDING")
+//                                .createdAt(LocalDateTime.now())
+//                                .build()
+//                );
+//
+//                log.info(" Ghi sự kiện vào Outbox thành công cho Order #{}", order.getId());
+//
+//            } catch (Exception ex) {
+//                log.error(" Lỗi ghi OutboxEvent: {}", ex.getMessage(), ex);
+//                throw new RuntimeException("Không thể serialize/gửi sự kiện hậu thanh toán", ex);
+//            }
+//
+//        } else {
+//            order.setStatus(OrderStatus.PAYMENT_FAILED);
+//            log.info("Đơn hàng #{} thanh toán thất bại. Chuyển sang PAYMENT_FAILED.", order.getId());
+//        }
+//
+//        orderRepository.save(order);
+//    }
+
     @Override
     @Transactional
     public void handlePaymentResult(PaymentResultEvent event) {
         log.info("Xử lý kết quả thanh toán cho đơn hàng #{}", event.getOrderId());
-       // Idempotency
         String eventId = "PAYMENT_RESULT_" + event.getOrderId();
 
-        // Idempotency check
         if (processedEventRepository.existsById(eventId)) {
             log.warn("PaymentResultEvent đã xử lý trước đó! eventId = {}", eventId);
             return;
         }
 
-        // Save to mark processed
         processedEventRepository.save(new ProcessedEvent(
-                eventId,
-                null, // No correlationId
-                LocalDateTime.now()
+                eventId, null, LocalDateTime.now()
         ));
 
         Order order = orderRepository.findById(event.getOrderId())
@@ -221,7 +313,6 @@ public class OrderServiceImpl implements OrderService {
             order.setStatus(OrderStatus.PAYMENT_SUCCESS);
             log.info("Đơn hàng #{} thanh toán thành công. Chuyển sang PAYMENT_SUCCESS.", order.getId());
 
-            // --- 1. Tạo sự kiện trừ kho ---
             InventoryDeductionRequestEvent inventoryEvent = InventoryDeductionRequestEvent.builder()
                     .orderId(order.getId())
                     .userId(order.getUserId())
@@ -231,10 +322,9 @@ public class OrderServiceImpl implements OrderService {
                                     .productId(item.getProductId())
                                     .quantity(item.getQuantity())
                                     .build())
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build();
 
-            // --- 2. Tạo sự kiện gửi thông báo ---
             NotificationOrderEvent notificationEvent = NotificationOrderEvent.builder()
                     .userId(order.getUserId())
                     .orderId(order.getId())
@@ -248,39 +338,63 @@ public class OrderServiceImpl implements OrderService {
                     .build();
 
             try {
-                // --- 3. Ghi vào OutboxEvent ---
                 String inventoryPayload = objectMapper.writeValueAsString(inventoryEvent);
                 String notificationPayload = objectMapper.writeValueAsString(notificationEvent);
 
-                outboxEventRepository.save(
-                        OutboxEvent.builder()
-                                .id(UUID.randomUUID())
-                                .aggregateType("Order")
-                                .aggregateId(String.valueOf(order.getId()))
-                                .type("InventoryDeductionEvent")
-                                .payload(inventoryPayload)
-                                .status("PENDING")
-                                .createdAt(LocalDateTime.now())
-                                .build()
-                );
+                outboxEventRepository.save(OutboxEvent.builder()
+                        .id(UUID.randomUUID())
+                        .aggregateType("Order")
+                        .aggregateId(String.valueOf(order.getId()))
+                        .type("InventoryDeductionEvent")
+                        .payload(inventoryPayload)
+                        .status("PENDING")
+                        .createdAt(LocalDateTime.now())
+                        .build());
 
-                outboxEventRepository.save(
-                        OutboxEvent.builder()
-                                .id(UUID.randomUUID())
-                                .aggregateType("Order")
-                                .aggregateId(String.valueOf(order.getId()))
-                                .type("NotificationEvent")
-                                .payload(notificationPayload)
-                                .status("PENDING")
-                                .createdAt(LocalDateTime.now())
-                                .build()
-                );
+                outboxEventRepository.save(OutboxEvent.builder()
+                        .id(UUID.randomUUID())
+                        .aggregateType("Order")
+                        .aggregateId(String.valueOf(order.getId()))
+                        .type("NotificationEvent")
+                        .payload(notificationPayload)
+                        .status("PENDING")
+                        .createdAt(LocalDateTime.now())
+                        .build());
 
-                log.info(" Ghi sự kiện vào Outbox thành công cho Order #{}", order.getId());
+                log.info("Ghi sự kiện vào Outbox thành công cho Order #{}", order.getId());
 
             } catch (Exception ex) {
-                log.error(" Lỗi ghi OutboxEvent: {}", ex.getMessage(), ex);
-                throw new RuntimeException("Không thể serialize/gửi sự kiện hậu thanh toán", ex);
+                log.error("Lỗi ghi OutboxEvent: {}", ex.getMessage(), ex);
+
+                try {
+                    RefundRequestEvent refundEvent = RefundRequestEvent.builder()
+                            .orderId(order.getId())
+                            .userId(order.getUserId())
+                            .amount(order.getTotalPrice())
+                            .paymentMethod(event.getPaymentMethod())
+                            .reason("OUTBOX_FAILED")
+                            .timestamp(Instant.now())
+                            .build();
+
+                    String refundPayload = objectMapper.writeValueAsString(refundEvent);
+
+                    outboxEventRepository.save(OutboxEvent.builder()
+                            .id(UUID.randomUUID())
+                            .aggregateType("Order")
+                            .aggregateId(String.valueOf(order.getId()))
+                            .type("RefundRequestEvent")
+                            .payload(refundPayload)
+                            .status("PENDING")
+                            .createdAt(LocalDateTime.now())
+                            .build());
+
+                    log.warn("Đã ghi RefundRequestEvent do lỗi ghi Outbox.");
+
+                } catch (Exception fallbackEx) {
+                    log.error("Lỗi ghi RefundRequestEvent: {}", fallbackEx.getMessage(), fallbackEx);
+                }
+
+                order.setStatus(OrderStatus.PAYMENT_FAILED);
             }
 
         } else {
@@ -290,6 +404,7 @@ public class OrderServiceImpl implements OrderService {
 
         orderRepository.save(order);
     }
+
 
     @Override
     @Transactional

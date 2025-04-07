@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import vn.com.iuh.fit.order_service.entity.OutboxEvent;
 import vn.com.iuh.fit.order_service.event.InventoryDeductionRequestEvent;
 import vn.com.iuh.fit.order_service.event.NotificationOrderEvent;
+import vn.com.iuh.fit.order_service.event.RefundRequestEvent;
 import vn.com.iuh.fit.order_service.event.ValidateInventoryEvent;
 import vn.com.iuh.fit.order_service.repository.OutboxEventRepository;
 
@@ -42,6 +43,10 @@ public class OutboxScheduler {
                         NotificationOrderEvent payload = objectMapper.readValue(event.getPayload(), NotificationOrderEvent.class);
                         kafkaTemplate.send("notification-events", payload);
                     }
+                    case "RefundRequestEvent" -> {
+                        RefundRequestEvent payload = objectMapper.readValue(event.getPayload(), RefundRequestEvent.class);
+                        kafkaTemplate.send("refund-request-events", payload);
+                    }
                     default -> log.warn("[OutboxScheduler] Loại sự kiện không xác định: {}", event.getType());
                 }
 
@@ -50,6 +55,7 @@ public class OutboxScheduler {
                 outboxEventRepository.save(event);
 
             } catch (Exception e) {
+                log.error("Lỗi khi xử lý OutboxEvent ID {} - type {}: {}", event.getId(), event.getType(), e.getMessage(), e);
             }
         }
     }

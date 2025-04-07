@@ -36,4 +36,8 @@ public class KafkaAdminTopicConfig {
 
     @Bean
     public NewTopic notificationTopic() {return new NewTopic("notification-events", 3, (short) 1); }
+
+    @Bean
+    public NewTopic refundRequestTopic() { return new NewTopic("refund-request-events", 3, (short) 1);}
+
 }

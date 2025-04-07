@@ -174,4 +174,26 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException(" Không tìm thấy thanh toán với ID: " + paymentId));
     }
+
+    @Override
+    @Transactional
+    public void processRefundByOrderId(Long orderId, String reason) {
+        log.info("Bắt đầu xử lý hoàn tiền theo yêu cầu từ Order-Service cho OrderId={}", orderId);
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch thanh toán với orderId = " + orderId));
+
+        if (!PaymentStatus.SUCCESS.equals(payment.getStatus())) {
+            log.warn(" Chỉ hoàn tiền cho payment đã thành công! Status hiện tại = {}", payment.getStatus());
+            return;
+        }
+
+        // Đánh dấu đã hoàn tiền
+        payment.setStatus(PaymentStatus.REFUNDED);
+        paymentRepository.save(payment);
+
+        log.info(" Đã hoàn tiền thành công cho OrderId={}, lý do: {}", orderId, reason);
+    }
+
+
 }

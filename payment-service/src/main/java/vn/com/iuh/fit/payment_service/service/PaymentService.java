@@ -10,4 +10,5 @@ public interface PaymentService {
     void processRefund(Long paymentId);
     List<Payment> getAllPayments();
     Payment getPaymentById(Long paymentId);
+    void processRefundByOrderId(Long orderId, String reason);
 }
