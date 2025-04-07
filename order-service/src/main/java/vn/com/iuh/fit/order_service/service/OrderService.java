@@ -19,4 +19,6 @@ public interface OrderService {
     void updateAndPublishStatus(Long orderId, OrderStatus status, String topic);
     List<Order> getAllOrders();
     Order getOrderById(Long orderId);
+    void removeItemFromOrder(Long orderId, Long itemId, String userId);
+
 }

@@ -291,6 +291,39 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
     }
 
+    @Override
+    @Transactional
+    public void removeItemFromOrder(Long orderId, Long itemId, String userId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng #" + orderId));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("Bạn không có quyền xóa sản phẩm trong đơn hàng này.");
+        }
+
+        OrderItem item = order.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy món con #" + itemId + " trong đơn hàng."));
+
+        if (item.getStatus() != OrderItemStatus.OUT_OF_STOCK) {
+            throw new RuntimeException("Chỉ được xóa sản phẩm có trạng thái OUT_OF_STOCK.");
+        }
+
+        order.getItems().remove(item);
+        orderItemRepository.delete(item);
+
+        log.info("Đã xóa item #{} khỏi order #{}", itemId, orderId);
+        if (order.getItems().isEmpty()) {
+            order.setStatus(OrderStatus.CANCELLED);
+        } else if (order.getItems().stream().allMatch(i -> i.getStatus() == OrderItemStatus.CONFIRMED)) {
+            order.setStatus(OrderStatus.PENDING_PAYMENT);
+        } else {
+            order.setStatus(OrderStatus.PARTIALLY_CONFIRMED);
+        }
+
+        orderRepository.save(order);
+    }
 
     /**
      * Cập nhật trạng thái đơn hàng & gửi Kafka event
