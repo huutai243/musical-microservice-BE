@@ -7,6 +7,7 @@ import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 @Data
 @AllArgsConstructor
 public class OrderItemResponseDTO {
+    private Long id;
     private String productId;
     private String name;
     private Double price;

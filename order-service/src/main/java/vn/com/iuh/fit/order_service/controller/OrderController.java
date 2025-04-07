@@ -76,6 +76,18 @@ public class OrderController {
         return ResponseEntity.status(403).build();
     }
 
+    @DeleteMapping("/{orderId}/items/{itemId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> deleteOrderItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String userId = JwtAuthFilter.extractUserId(authHeader, jwtSecret);
+        orderService.removeItemFromOrder(orderId, itemId, userId);
+        return ResponseEntity.ok("Xóa món thành công.");
+    }
+
 
     @GetMapping("/internal/{orderId}")
     public ResponseEntity<OrderResponseDTO> getOrderInternalById(@PathVariable Long orderId) {
@@ -128,17 +140,32 @@ public class OrderController {
     }
 
     private OrderResponseDTO convertToDTO(Order order) {
+        List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
+                .map(item -> new OrderItemResponseDTO(
+                        item.getId(),
+                        item.getProductId(),
+                        item.getName(),
+                        item.getPrice(),
+                        item.getQuantity(),
+                        item.getImageUrl(),
+                        item.getStatus()
+                ))
+                .toList();
+
         return new OrderResponseDTO(
                 order.getId(),
                 order.getTotalPrice(),
                 order.getUserId(),
-                order.getStatus()
+                order.getStatus(),
+                itemDTOs
         );
     }
+
 
     private OrderCorrelationResponseDTO convertToOrderCorrelationDTO(Order order) {
         List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
                 .map(item -> new OrderItemResponseDTO(
+                        item.getId(),
                         item.getProductId(),
                         item.getName(),
                         item.getPrice(),
@@ -158,6 +185,5 @@ public class OrderController {
                 itemDTOs
         );
     }
-
 
 }
