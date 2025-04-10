@@ -1,6 +1,7 @@
 package vn.com.iuh.fit.order_service.service;
 
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
+import vn.com.iuh.fit.order_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
 import vn.com.iuh.fit.order_service.event.InventoryValidationResultEvent;
@@ -20,5 +21,6 @@ public interface OrderService {
     List<Order> getAllOrders();
     Order getOrderById(Long orderId);
     void removeItemFromOrder(Long orderId, Long itemId, String userId);
+    OrderResponseDTO getOrderDTOById(Long orderId);
 
 }

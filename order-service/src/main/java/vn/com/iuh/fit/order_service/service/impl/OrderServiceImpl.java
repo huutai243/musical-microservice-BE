@@ -1,10 +1,12 @@
 package vn.com.iuh.fit.order_service.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
+import vn.com.iuh.fit.order_service.dto.OrderItemResponseDTO;
+import vn.com.iuh.fit.order_service.dto.OrderResponseDTO;
 import vn.com.iuh.fit.order_service.entity.Order;
 import vn.com.iuh.fit.order_service.entity.OrderItem;
 import vn.com.iuh.fit.order_service.entity.OutboxEvent;
@@ -440,6 +442,34 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponseDTO getOrderDTOById(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
+
+        List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
+                .map(item -> new OrderItemResponseDTO(
+                        item.getId(),
+                        item.getProductId(),
+                        item.getName(),
+                        item.getPrice(),
+                        item.getQuantity(),
+                        item.getImageUrl(),
+                        item.getStatus()
+                ))
+                .toList();
+
+        return new OrderResponseDTO(
+                order.getId(),
+                order.getTotalPrice(),
+                order.getUserId(),
+                order.getStatus(),
+                itemDTOs
+        );
+    }
+
+
     /**
      * Cập nhật trạng thái đơn hàng & gửi Kafka event
      */
@@ -499,8 +529,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order getOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException(" Không tìm thấy đơn hàng với ID: " + orderId));
     }
+
 }

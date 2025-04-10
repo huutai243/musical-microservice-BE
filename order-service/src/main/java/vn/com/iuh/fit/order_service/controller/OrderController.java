@@ -67,10 +67,14 @@ public class OrderController {
             @RequestHeader("Authorization") String authHeader
     ) {
         String userId = JwtAuthFilter.extractUserId(authHeader,jwtSecret);
-        Order order = orderService.getOrderById(orderId);
-
-        if (userId.equals(order.getUserId())) {
-            return ResponseEntity.ok(convertToDTO(order));
+//        Order order = orderService.getOrderById(orderId);
+//
+//        if (userId.equals(order.getUserId())) {
+//            return ResponseEntity.ok(convertToDTO(order));
+//        }
+        OrderResponseDTO dto = orderService.getOrderDTOById(orderId);
+        if (userId.equals(dto.getUserId())) {
+            return ResponseEntity.ok(dto);
         }
 
         return ResponseEntity.status(403).build();
@@ -89,11 +93,16 @@ public class OrderController {
     }
 
 
+//    @GetMapping("/internal/{orderId}")
+//    public ResponseEntity<OrderResponseDTO> getOrderInternalById(@PathVariable Long orderId) {
+//        Order order = orderService.getOrderById(orderId);
+//        return ResponseEntity.ok(convertToDTO(order)); // Trả về DTO gọn
+//    }
     @GetMapping("/internal/{orderId}")
     public ResponseEntity<OrderResponseDTO> getOrderInternalById(@PathVariable Long orderId) {
-        Order order = orderService.getOrderById(orderId);
-        return ResponseEntity.ok(convertToDTO(order)); // Trả về DTO gọn
-    }
+        return ResponseEntity.ok(orderService.getOrderDTOById(orderId));
+}
+
 
     /**
      * API xác nhận đơn hàng
