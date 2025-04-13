@@ -18,7 +18,7 @@ public interface OrderService {
     void shipOrder(Long orderId);
     void deliverOrder(Long orderId);
     void updateAndPublishStatus(Long orderId, OrderStatus status, String topic);
-    List<Order> getAllOrders();
+    List<OrderResponseDTO> getAllOrders();
     Order getOrderById(Long orderId);
     void removeItemFromOrder(Long orderId, Long itemId, String userId);
     OrderResponseDTO getOrderDTOById(Long orderId);
