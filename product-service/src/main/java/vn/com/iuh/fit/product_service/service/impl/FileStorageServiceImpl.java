@@ -69,4 +69,15 @@ public class FileStorageServiceImpl implements FileStorageService {
             );
         }
     }
+
+    @Override
+    public void deleteFile(String fileUrl) throws Exception {
+        if (fileUrl == null || fileUrl.isEmpty()) return;
+        String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+        minioClient.removeObject(RemoveObjectArgs.builder()
+                .bucket(bucketName)
+                .object(fileName)
+                .build());
+    }
+
 }

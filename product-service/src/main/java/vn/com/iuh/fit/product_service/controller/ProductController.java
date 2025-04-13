@@ -79,7 +79,8 @@ public class ProductController {
         ObjectMapper objectMapper = new ObjectMapper();
         ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
 
-        return ResponseEntity.ok(productService.updateProductWithImages(id, productRequest, imageFiles));
+        ProductResponse response = productService.updateProductWithImages(id, productRequest, imageFiles);
+        return ResponseEntity.ok(response);
     }
 
     /**
