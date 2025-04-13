@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "log-dashboard-1",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Spring Boot Logs Dashboard",
+      "hits": 0,
+      "description": "Centralized log search by traceId, service, level",
+      "panelsJSON": "[ ... ]"
+    }
+  }
+]

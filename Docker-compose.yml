@@ -28,7 +28,6 @@ services:  # 1. Eureka Service
     environment:
       EUREKA_INSTANCE_HOSTNAME: api-gateway
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
-      SPRING_ZIPKIN_BASE-URL: http://zipkin:9411
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
     networks:
@@ -183,7 +182,7 @@ services:  # 1. Eureka Service
   # 10. MinIO
   minio:
     container_name: minio
-    image: quay.io/minio/minio
+    image: minio/minio:latest
     ports:
       - "9001:9000"  # Đổi mapping từ 9000:9000 thành 9001:9000
       - "9090:9090"
@@ -332,7 +331,8 @@ services:  # 1. Eureka Service
       - microservice-net
   # 18. Kibana
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.12.0
+#    image: docker.elastic.co/kibana/kibana:8.12.0
+    image: elastic/kibana:8.12.0
     container_name: kibana
     depends_on:
       - elasticsearch
@@ -375,6 +375,57 @@ services:  # 1. Eureka Service
     networks:
       - microservice-net
 
+  # 21.Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.0
+    container_name: logstash
+    volumes:
+      - ./observability/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5044:5044"
+    depends_on:
+      - elasticsearch
+    networks:
+      - microservice-net
+  # 22.Prometheus
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9091:9090"
+    networks:
+      - microservice-net
+  # 23.Tempo
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: tempo
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo.yaml
+    command: [ "--config.file=/etc/tempo.yaml" ]
+    ports:
+      - "3200:3200"   # HTTP UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - microservice-net
+  # 24.Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./observability/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./observability/grafana/provisioning/:/etc/grafana/provisioning/
+    depends_on:
+      - prometheus
+      - tempo
+      - elasticsearch
+    networks:
+      - microservice-net
+
 volumes:
   redis-data:
     driver: local
@@ -387,7 +438,13 @@ networks:
 
 #Eureka Dashboard: http://localhost:8761
 #API Gateway: http://localhost:9000
-#Zipkin Tracing: http://localhost:9411
-#Prometheus Metrics: http://localhost:9090
-#Grafana UI: http://localhost:3000 (user: admin / pass: admin)
-#MinIO UI: http://localhost:9090 (user: minioadmin, pass: minioadmin)
+#Prometheus Metrics: http://localhost:9091
+#Grafana UI: http://localhost:3002 (user: admin / pass: admin)
+#Tempo Trace Viewer (via Grafana Explore tab): http://localhost:3002/explore
+#Kibana Logs UI: http://localhost:5601
+#Kafka UI (Kafdrop): http://localhost:9002
+#MinIO UI: http://localhost:9001 (user: minioadmin, pass: minioadmin)
+#MinIO Console (Admin UI): http://localhost:9090 (user: minioadmin, pass: minioadmin)
+#MySQL Admin CLI: docker exec -it mysql mysql -u root -ppassword
+#Redis CLI: docker exec -it redis redis-cli
+
