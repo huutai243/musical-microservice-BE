@@ -37,11 +37,6 @@ public class UserController {
         Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok(userService.updateUser(userId, userRequest));
     }
-
-    /**
-     *  ADMIN tạo user mới
-     */
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create")
     public ResponseEntity<User> createUser(@RequestBody UserRequest userRequest) {
         if (userService.getUserById(userRequest.getId()).isPresent()) {
