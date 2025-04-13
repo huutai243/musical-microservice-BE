@@ -30,7 +30,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="api-gateway" target="23" />
+      <module name="api-gateway" target="21" />
       <module name="jwt-utils" target="21" />
     </bytecodeTargetLevel>
   </component>
