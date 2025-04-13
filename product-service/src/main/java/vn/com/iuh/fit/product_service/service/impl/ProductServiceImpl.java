@@ -111,21 +111,26 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(productRequest.getDescription());
         product.setPrice(productRequest.getPrice());
         product.setCategory(category);
-
         product = productRepository.save(product);
 
+        List<ProductImage> existingImages = productImageRepository.findByProductId(id);
+        List<String> retainedUrls = productRequest.getRetainedImageUrls() != null ? productRequest.getRetainedImageUrls() : List.of();
+
+        for (ProductImage image : existingImages) {
+            if (!retainedUrls.contains(image.getImageUrl())) {
+                fileStorageService.deleteFile(image.getImageUrl());
+                productImageRepository.delete(image);
+            }
+        }
+
         if (imageFiles != null && !imageFiles.isEmpty()) {
-            // Xóa ảnh cũ khỏi MinIO
-            List<ProductImage> existingImages = productImageRepository.findByProductId(id);
-            List<String> oldUrls = existingImages.stream().map(ProductImage::getImageUrl).toList();
-
-            fileStorageService.deleteFiles(oldUrls);
-            productImageRepository.deleteAll(existingImages);
-
-            // Upload ảnh mới
-            List<String> newImageUrls = fileStorageService.uploadFiles(imageFiles);
-            for (String imageUrl : newImageUrls) {
-                productImageRepository.save(new ProductImage(null, imageUrl, product));
+            List<String> uploadedUrls = fileStorageService.uploadFiles(imageFiles);
+            for (String imageUrl : uploadedUrls) {
+                ProductImage newImage = ProductImage.builder()
+                        .imageUrl(imageUrl)
+                        .product(product)
+                        .build();
+                productImageRepository.save(newImage);
             }
         }
 
