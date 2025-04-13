@@ -2,6 +2,8 @@ package vn.com.iuh.fit.order_service.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
@@ -14,6 +16,7 @@ import vn.com.iuh.fit.order_service.entity.ProcessedEvent;
 import vn.com.iuh.fit.order_service.enums.OrderItemStatus;
 import vn.com.iuh.fit.order_service.enums.OrderStatus;
 import vn.com.iuh.fit.order_service.event.*;
+import vn.com.iuh.fit.order_service.mapper.OrderMapper;
 import vn.com.iuh.fit.order_service.producer.OrderProducer;
 import vn.com.iuh.fit.order_service.repository.OrderItemRepository;
 import vn.com.iuh.fit.order_service.repository.OrderRepository;
@@ -37,6 +40,10 @@ public class OrderServiceImpl implements OrderService {
     private final ProcessedEventRepository processedEventRepository;
     private final ObjectMapper objectMapper;
     private final OutboxEventRepository outboxEventRepository;
+
+    @Autowired
+    private OrderMapper orderMapper;
+
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
@@ -523,9 +530,11 @@ public class OrderServiceImpl implements OrderService {
         updateAndPublishStatus(orderId, OrderStatus.DELIVERED, "order-delivered-events");
     }
 
-    @Override
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<OrderResponseDTO> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(orderMapper::toDTO)
+                .toList();
     }
 
     @Override

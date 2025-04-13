@@ -53,10 +53,9 @@ public class OrderController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/get-all")
-    public ResponseEntity<List<Order>> getAllOrders() {
+    public ResponseEntity<List<OrderResponseDTO>> getAllOrders() {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
-
     /**
      * API lấy đơn hàng theo ID
      */
