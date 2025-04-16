@@ -6,6 +6,7 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.AuthService.dto.JwtResponse;
 import vn.com.iuh.fit.AuthService.entity.User;
@@ -99,9 +100,13 @@ public class JwtService {
      */
     private String generateToken(User user, long expirationTime) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());  //them id vào claim
+        claims.put("id", user.getId());
         claims.put("username", user.getUsername());
-        claims.put("roles", user.getRoles().stream().map(role -> role.getName()).collect(Collectors.toList()));
+        // Lưu roles với prefix "ROLE_" để tương thích với Spring Security
+        List<String> roles = user.getRoles().stream()
+                .map(role -> "ROLE_" + role.getName())
+                .collect(Collectors.toList());
+        claims.put("roles", roles);
 
         return Jwts.builder()
                 .claims(claims)
@@ -117,5 +122,17 @@ public class JwtService {
      */
     public Claims extractAllClaims(String token) {
         return jwtParser.parseSignedClaims(token).getPayload();
+    }
+
+    /**
+     * Trích xuất danh sách GrantedAuthority từ token
+     */
+    @SuppressWarnings("unchecked")
+    public List<SimpleGrantedAuthority> extractAuthorities(String token) {
+        Claims claims = extractAllClaims(token);
+        List<String> roles = (List<String>) claims.get("roles", List.class);
+        return roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
     }
 }
