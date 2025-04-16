@@ -102,9 +102,9 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
         claims.put("username", user.getUsername());
-        // Lưu roles với prefix "ROLE_" để tương thích với Spring Security
+        // Lưu roles mà không thêm tiền tố "ROLE_"
         List<String> roles = user.getRoles().stream()
-                .map(role -> "ROLE_" + role.getName())
+                .map(role -> role.getName())
                 .collect(Collectors.toList());
         claims.put("roles", roles);
 
@@ -131,7 +131,9 @@ public class JwtService {
     public List<SimpleGrantedAuthority> extractAuthorities(String token) {
         Claims claims = extractAllClaims(token);
         List<String> roles = (List<String>) claims.get("roles", List.class);
+        // Thêm tiền tố "ROLE_" cho Spring Security
         return roles.stream()
+                .map(role -> "ROLE_" + role)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }
