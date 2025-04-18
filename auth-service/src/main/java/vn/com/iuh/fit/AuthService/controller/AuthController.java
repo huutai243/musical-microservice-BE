@@ -138,4 +138,27 @@ public class AuthController {
 
         return ResponseEntity.ok("Cập nhật role thành công.");
     }
+
+    /**
+     * Lấy danh sách role của người dùng theo ID
+     */
+    @GetMapping("/user/{id}/role")
+    public ResponseEntity<?> getUserRoles(@PathVariable Long id) {
+        Optional<User> optionalUser = userRepository.findById(id);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy người dùng với ID: " + id);
+        }
+
+        User user = optionalUser.get();
+        List<String> roleNames = user.getRoles().stream()
+                .map(Role::getName)  // getName() là String
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("userId", id);
+        response.put("roles", roleNames);
+
+        return ResponseEntity.ok(response);
+    }
+
 }

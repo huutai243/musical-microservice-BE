@@ -28,6 +28,7 @@ public class UserController {
     /**
      *  Lấy thông tin người dùng hiện tại từ JWT
      */
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @GetMapping("/me")
     public ResponseEntity<User> getUserInfo() {
         Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -36,9 +37,17 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
     // Cập nhật avatar user
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PutMapping(value = "/update-avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<User> updateAvatar(@RequestPart(value = "image", required = false) MultipartFile imageFile) {
-        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<User> updateAvatar(@RequestPart(value = "image", required = false) MultipartFile imageFile,
+                                             @RequestPart(value = "userId") String userIdStr) {
+        // Validate userId
+        Long userId;
+        try {
+            userId = Long.parseLong(userIdStr);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
 
         // Kiểm tra nếu tệp rỗng
         if (imageFile == null || imageFile.isEmpty()) {
@@ -57,10 +66,10 @@ public class UserController {
     }
 
     // Cập nhật địa chỉ, số điện thoại
-    @PutMapping("/update-profile")
-    public ResponseEntity<User> updateProfile(@RequestBody UpdateProfileRequest updateProfileRequest) {
-        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PutMapping("/update-profile/{userId}")
+    public ResponseEntity<User> updateProfile(@PathVariable Long userId,
+                                              @RequestBody UpdateProfileRequest updateProfileRequest) {
         // Cập nhật thông tin người dùng
         User updatedUser = userService.updateProfile(userId, updateProfileRequest);
         return ResponseEntity.ok(updatedUser);
