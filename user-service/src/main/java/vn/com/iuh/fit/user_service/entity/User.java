@@ -15,11 +15,13 @@ public class User {
     private Long id; // Lấy từ Auth-Service
 
     @Column(nullable = false)
-    private String fullName;
+    private String username;
 
     @Column(nullable = false, unique = true)
     private String email;
 
     private String phoneNumber;
     private String address;
+
+    private String avatarUrl;
 }

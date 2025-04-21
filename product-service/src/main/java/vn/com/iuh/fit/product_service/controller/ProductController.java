@@ -2,6 +2,7 @@ package vn.com.iuh.fit.product_service.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -141,6 +142,30 @@ public class ProductController {
     @GetMapping("/page")
     public ResponseEntity<List<ProductResponse>> getPagedProducts(@RequestParam int page, @RequestParam int size) {
         return ResponseEntity.ok(productService.getPagedProducts(page, size));
+    }
+    @GetMapping("/search-paged")
+    public ResponseEntity<Page<ProductResponse>> searchProductsPaged(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(productService.searchProductsPaged(keyword, page, size));
+    }
+
+    @GetMapping("/filter-paged")
+    public ResponseEntity<Page<ProductResponse>> filterProductsByPricePaged(
+            @RequestParam double minPrice,
+            @RequestParam double maxPrice,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(productService.filterProductsByPricePaged(minPrice, maxPrice, page, size));
+    }
+
+    @GetMapping("/category-paged/{categoryId}")
+    public ResponseEntity<Page<ProductResponse>> getProductsByCategoryPaged(
+            @PathVariable Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(productService.getProductsByCategoryPaged(categoryId, page, size));
     }
 
     /**

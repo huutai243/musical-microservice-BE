@@ -5,7 +5,8 @@ import vn.com.iuh.fit.product_service.dto.ProductRequest;
 import vn.com.iuh.fit.product_service.dto.ProductResponse;
 
 import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 public interface ProductService {
 
     // 1 CRUD CƠ BẢN
@@ -24,4 +25,7 @@ public interface ProductService {
     List<ProductResponse> getPagedProducts(int page, int size); // Phân trang sản phẩm
     List<ProductResponse> getLatestProducts(int limit); // Lấy sản phẩm mới nhất
     List<ProductResponse> getBestSellingProducts(int limit); // Lấy sản phẩm bán chạy
+    Page<ProductResponse> searchProductsPaged(String keyword, int page, int size);
+    Page<ProductResponse> filterProductsByPricePaged(double minPrice, double maxPrice, int page, int size);
+    Page<ProductResponse> getProductsByCategoryPaged(Long categoryId, int page, int size);
 }

@@ -5,16 +5,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.com.iuh.fit.AuthService.dto.*;
+import vn.com.iuh.fit.AuthService.entity.Role;
+import vn.com.iuh.fit.AuthService.entity.RoleName;
 import vn.com.iuh.fit.AuthService.entity.User;
+import vn.com.iuh.fit.AuthService.repository.RoleRepository;
 import vn.com.iuh.fit.AuthService.repository.UserRepository;
 import vn.com.iuh.fit.AuthService.service.AuthService;
 import vn.com.iuh.fit.AuthService.config.JwtService;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -23,6 +26,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
     /**
      * Đăng ký tài khoản mới
@@ -108,4 +112,53 @@ public class AuthController {
 
         return ResponseEntity.ok(claims);
     }
+
+    /**
+     * Admin thay đổi role người dùng
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/users/change-role")
+    public ResponseEntity<?> updateUserRole(@RequestBody UpdateUserRoleRequest request) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + request.getUserId()));
+
+        String roleInput = request.getNewRole().toUpperCase();
+        if (!roleInput.equals("ADMIN") && !roleInput.equals("USER")) {
+            return ResponseEntity.badRequest().body("Role không hợp lệ. Chỉ chấp nhận: ADMIN hoặc USER");
+        }
+
+        Role newRoleEntity = roleRepository.findByName(roleInput)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleInput));
+
+        Collection<Role> updatedRoles = new ArrayList<>();
+        updatedRoles.add(newRoleEntity);
+        user.setRoles(updatedRoles);
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Cập nhật role thành công.");
+    }
+
+    /**
+     * Lấy danh sách role của người dùng theo ID
+     */
+    @GetMapping("/user/{id}/role")
+    public ResponseEntity<?> getUserRoles(@PathVariable Long id) {
+        Optional<User> optionalUser = userRepository.findById(id);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy người dùng với ID: " + id);
+        }
+
+        User user = optionalUser.get();
+        List<String> roleNames = user.getRoles().stream()
+                .map(Role::getName)  // getName() là String
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("userId", id);
+        response.put("roles", roleNames);
+
+        return ResponseEntity.ok(response);
+    }
+
 }
