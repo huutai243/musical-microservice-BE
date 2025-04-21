@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>Admin Dashboard</h2>
+<input id="sessionId" placeholder="Reply to session ID"/>
+<input id="message" placeholder="Message"/>
+<button onclick="sendMessage()">Send</button>
+<ul id="messages"></ul>
+
+<script>
+    const socket = new SockJS('/ws');
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({login: "admin"}, () => {
+        stompClient.subscribe("/topic/admin", (msg) => {
+            const chat = JSON.parse(msg.body);
+            const li = document.createElement("li");
+            li.innerText = `[${chat.sessionId}][${chat.from}]: ${chat.content}`;
+            document.getElementById("messages").appendChild(li);
+
+            // Gợi ý sessionId cho admin nhập sẵn
+            document.getElementById("sessionId").value = chat.sessionId;
+        });
+    });
+
+    function sendMessage() {
+        const sessionId = document.getElementById("sessionId").value;
+        const content = document.getElementById("message").value;
+        const msg = {
+            sessionId: sessionId,
+            from: "admin",
+            to: sessionId,
+            content: content
+        };
+        stompClient.send("/app/chat", {}, JSON.stringify(msg));
+        document.getElementById("message").value = "";
+    }
+</script>
+</body>
+</html>

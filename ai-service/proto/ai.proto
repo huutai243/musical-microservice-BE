@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ai;
+
+service AIService {
+  rpc Ask (AIResquest) returns (AIResponse);
+}
+
+message AIResquest {
+  string question = 1;
+}
+
+message AIResponse {
+  string answer = 1;
+}
+
+///Định nghĩa gRPC
