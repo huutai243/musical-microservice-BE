@@ -28,6 +28,7 @@ import vn.com.iuh.fit.payment_service.service.PaymentService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -92,7 +93,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 5. Gửi thanh toán (dùng DTO nội bộ)
         boolean success = gateway.processPayment(
-                new InternalPaymentRequestDTO(order.getOrderId(), amount, paymentRequest.getPaymentMethod())
+                new InternalPaymentRequestDTO(order.getOrderId(), amount, paymentRequest.getPaymentMethod(), order.getUserId())
         );
 
         // 6. Lưu DB
@@ -195,5 +196,131 @@ public class PaymentServiceImpl implements PaymentService {
         log.info(" Đã hoàn tiền thành công cho OrderId={}, lý do: {}", orderId, reason);
     }
 
+    @Override
+    @Transactional
+    public String initiatePayment(PaymentRequestDTO paymentRequest) {
+        OrderResponseDTO order = orderClient.getOrderById(paymentRequest.getOrderId());
+
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT &&
+                order.getStatus() != OrderStatus.PAYMENT_FAILED) {
+            throw new IllegalStateException("Đơn hàng không hợp lệ để thanh toán.");
+        }
+
+        double amount = order.getTotalPrice();
+
+        // Lưu trạng thái PENDING vào DB
+        Payment payment = Payment.builder()
+                .orderId(order.getOrderId())
+                .userId(order.getUserId())
+                .amount(amount)
+                .paymentMethod(paymentRequest.getPaymentMethod())
+                .status(PaymentStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
+        paymentRepository.save(payment);
+
+        //URL redirect thanh toán
+        PaymentGateway gateway = switch (paymentRequest.getPaymentMethod().toUpperCase()) {
+            case "STRIPE" -> stripePaymentGateway;
+            case "PAYPAL" -> paypalPaymentGateway;
+            default ->
+                    throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ: " + paymentRequest.getPaymentMethod());
+        };
+
+        return gateway.generatePaymentUrl(
+                new InternalPaymentRequestDTO(order.getOrderId(), amount, paymentRequest.getPaymentMethod(), order.getUserId())
+        );
+
+    }
+
+    @Override
+    @Transactional
+    public void confirmPaymentSuccess(Long orderId, String userId) {
+        // Kiểm tra nếu đã có Payment với orderId
+        Optional<Payment> existingPaymentOptional = paymentRepository.findByOrderId(orderId);
+
+        if (existingPaymentOptional.isEmpty()) {
+            log.warn("Không tìm thấy bản ghi Payment với orderId = {}. Không cần xử lý", orderId);
+            return; // Nếu không tìm thấy, không làm gì thêm
+        }
+
+        // Nếu đã có payment, cập nhật trạng thái thành công
+        Payment payment = existingPaymentOptional.get();
+        payment.setStatus(PaymentStatus.SUCCESS);
+        paymentRepository.save(payment);
+
+        // Gửi sự kiện thanh toán thành công đến OutboxEvent
+        try {
+            PaymentResultEvent event = PaymentResultEvent.builder()
+                    .orderId(orderId)
+                    .userId(userId)
+                    .amount(payment.getAmount())
+                    .paymentMethod(payment.getPaymentMethod())
+                    .success(true)
+                    .message("Thanh toán thành công")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            outboxEventRepository.save(OutboxEvent.builder()
+                    .id(UUID.randomUUID())
+                    .aggregateType("Payment")
+                    .aggregateId(orderId.toString())
+                    .type("PaymentResultEvent")
+                    .payload(objectMapper.writeValueAsString(event))
+                    .status("PENDING")
+                    .createdAt(LocalDateTime.now())
+                    .build());
+
+            log.info(" Đã xác nhận thanh toán và gửi PaymentResultEvent cho Order {}", orderId);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Lỗi khi serialize PaymentResultEvent", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void confirmPaymentFailed(Long orderId, String userId) {
+        // Kiểm tra nếu đã có Payment với orderId
+        Optional<Payment> existingPaymentOptional = paymentRepository.findByOrderId(orderId);
+
+        if (existingPaymentOptional.isEmpty()) {
+            log.warn("Không tìm thấy bản ghi Payment với orderId = {}. Không cần xử lý", orderId);
+            return; // Nếu không tìm thấy, không làm gì thêm
+        }
+
+        // Nếu đã có payment, cập nhật trạng thái thanh toán thất bại
+        Payment payment = existingPaymentOptional.get();
+        payment.setStatus(PaymentStatus.FAILED);
+        paymentRepository.save(payment);
+
+        // Gửi sự kiện thanh toán thất bại đến OutboxEvent
+        try {
+            PaymentResultEvent event = PaymentResultEvent.builder()
+                    .orderId(orderId)
+                    .userId(userId)
+                    .amount(payment.getAmount())
+                    .paymentMethod(payment.getPaymentMethod())
+                    .success(false)
+                    .message("Thanh toán thất bại")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            outboxEventRepository.save(OutboxEvent.builder()
+                    .id(UUID.randomUUID())
+                    .aggregateType("Payment")
+                    .aggregateId(orderId.toString())
+                    .type("PaymentResultEvent")
+                    .payload(objectMapper.writeValueAsString(event))
+                    .status("PENDING")
+                    .createdAt(LocalDateTime.now())
+                    .build());
+
+            log.info(" Đã xác nhận thanh toán thất bại và gửi PaymentResultEvent cho Order {}", orderId);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Lỗi khi serialize PaymentResultEvent", e);
+        }
+    }
 
 }

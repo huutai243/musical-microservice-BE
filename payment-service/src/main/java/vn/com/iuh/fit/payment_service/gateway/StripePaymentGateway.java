@@ -2,13 +2,12 @@ package vn.com.iuh.fit.payment_service.gateway;
 
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vn.com.iuh.fit.payment_service.dto.InternalPaymentRequestDTO;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Logger;
 
 @Service
@@ -19,43 +18,55 @@ public class StripePaymentGateway implements PaymentGateway {
     @Value("${stripe.secret-key}")
     private String secretKey;
 
+    @Value("${stripe.success-url}")
+    private String successUrl;
+
+    @Value("${stripe.cancel-url}")
+    private String cancelUrl;
+
     @Override
     public boolean processPayment(InternalPaymentRequestDTO paymentRequest) {
-        Stripe.apiKey = secretKey;
-
-        try {
-            // Stripe yêu cầu số tiền ở dạng cent (ví dụ: 30.00 USD => 3000 cents)
-            long amountInCents = (long) (paymentRequest.getAmount() * 100);
-
-            Map<String, Object> paymentParams = new HashMap<>();
-            paymentParams.put("amount", amountInCents);
-            paymentParams.put("currency", "usd");
-            paymentParams.put("payment_method", "pm_card_visa");
-            // Thành công (Mastercard)
-//        paymentParams.put("payment_method", "pm_card_mastercard");
-//        // Thẻ bị từ chối
-//        paymentParams.put("payment_method", "pm_card_chargeDeclined");
-//        // Thiếu tiền
-//        paymentParams.put("payment_method", "pm_card_insufficientFunds");
-//       // Lỗi hệ thống
-//        paymentParams.put("payment_method", "pm_card_systemFailure");
-            paymentParams.put("confirm", true);
-            paymentParams.put("description", "Thanh toán đơn hàng #" + paymentRequest.getOrderId());
-
-            PaymentIntent paymentIntent = PaymentIntent.create(paymentParams);
-            return "succeeded".equals(paymentIntent.getStatus());
-
-        } catch (StripeException e) {
-            log.severe(" Lỗi khi xử lý thanh toán Stripe: " + e.getMessage());
-            return false;
-        } catch (Exception ex) {
-            log.severe(" Lỗi không xác định khi xử lý thanh toán: " + ex.getMessage());
-            return false;
-        }
+        // Không dùng nữa vì Stripe Checkout là redirect-based
+        throw new UnsupportedOperationException("Dùng generatePaymentUrl để thanh toán Stripe");
     }
 
     @Override
     public String generatePaymentUrl(InternalPaymentRequestDTO paymentRequest) {
-        return null; // Not used for Stripe
+        Stripe.apiKey = secretKey;
+
+        try {
+            long amountInCents = (long) (paymentRequest.getAmount() * 100);
+
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl(successUrl)
+                    .setCancelUrl(cancelUrl)
+                    .addLineItem(
+                            SessionCreateParams.LineItem.builder()
+                                    .setQuantity(1L)
+                                    .setPriceData(
+                                            SessionCreateParams.LineItem.PriceData.builder()
+                                                    .setCurrency("usd")
+                                                    .setUnitAmount(amountInCents)
+                                                    .setProductData(
+                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                    .setName("Order #" + paymentRequest.getOrderId())
+                                                                    .build()
+                                                    )
+                                                    .build()
+                                    )
+                                    .build()
+                    )
+                    .putMetadata("orderId", String.valueOf(paymentRequest.getOrderId()))
+                    .putMetadata("userId", paymentRequest.getUserId())
+                    .build();
+
+            Session session = Session.create(params);
+            return session.getUrl();
+
+        } catch (StripeException e) {
+            log.severe("Lỗi khi tạo session thanh toán Stripe: " + e.getMessage());
+            throw new RuntimeException("Không thể tạo session thanh toán Stripe", e);
+        }
     }
 }

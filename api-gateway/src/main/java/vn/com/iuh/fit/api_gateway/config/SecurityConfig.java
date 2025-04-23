@@ -68,7 +68,9 @@ public class SecurityConfig {
                     || path.startsWith("/api/products/bestselling")
                     || path.startsWith("/api/reviews/health")
                     || path.equals("/api/categories/get-all")
-                    || path.matches("^/api/categories/\\d+$"))
+                    || path.matches("^/api/categories/\\d+$")
+                    || path.equals("/api/payment/webhook") //
+            )
             {
                 // Bỏ qua, không check JWT
                 return chain.filter(exchange);

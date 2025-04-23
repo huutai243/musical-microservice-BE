@@ -9,5 +9,6 @@ public class InternalPaymentRequestDTO {
     private Long orderId;
     private Double amount;
     private String paymentMethod;
+    private String userId;
 }
 

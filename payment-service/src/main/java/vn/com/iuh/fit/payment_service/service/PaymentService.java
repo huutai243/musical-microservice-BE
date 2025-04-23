@@ -11,4 +11,7 @@ public interface PaymentService {
     List<Payment> getAllPayments();
     Payment getPaymentById(Long paymentId);
     void processRefundByOrderId(Long orderId, String reason);
+    String initiatePayment(PaymentRequestDTO paymentRequest);
+    void confirmPaymentSuccess(Long orderId, String userId);
+    void confirmPaymentFailed(Long orderId, String userId);
 }

@@ -263,6 +263,8 @@ services:  # 1. Eureka Service
       SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka
       EUREKA_INSTANCE_HOSTNAME: payment-service
+    env_file:
+      - .env
     networks:
       - microservice-net
 

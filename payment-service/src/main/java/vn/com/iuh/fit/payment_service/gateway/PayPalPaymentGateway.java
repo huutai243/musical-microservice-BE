@@ -28,24 +28,71 @@ public class PayPalPaymentGateway implements PaymentGateway {
     @Value("${paypal.base-url}")
     private String baseUrl;
 
+    @Value("${paypal.success-url}")
+    private String successUrl;
+
+    @Value("${paypal.cancel-url}")
+    private String cancelUrl;
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public boolean processPayment(InternalPaymentRequestDTO paymentRequest) {
+        throw new UnsupportedOperationException("Sử dụng generatePaymentUrl để xử lý thanh toán PayPal.");
+    }
+
+    @Override
+    public String generatePaymentUrl(InternalPaymentRequestDTO paymentRequest) {
         try {
             // 1. Lấy access token từ PayPal
             String accessToken = getAccessToken();
 
-            // 2. Tạo đơn hàng trên PayPal
-            String orderId = createPayPalOrder(paymentRequest, accessToken);
+            // 2. Tạo order PayPal với các đường dẫn redirect
+            String requestBody = "{\n" +
+                    "  \"intent\": \"CAPTURE\",\n" +
+                    "  \"purchase_units\": [\n" +
+                    "    {\n" +
+                    "      \"amount\": {\n" +
+                    "        \"currency_code\": \"USD\",\n" +
+                    "        \"value\": \"" + paymentRequest.getAmount() + "\"\n" +
+                    "      },\n" +
+                    "      \"custom_id\": \"" + paymentRequest.getOrderId() + "\"\n" +
+                    "    }\n" +
+                    "  ],\n" +
+                    "  \"application_context\": {\n" +
+                    "    \"return_url\": \"" + successUrl + "?orderId=" + paymentRequest.getOrderId() + "\",\n" +
+                    "    \"cancel_url\": \"" + cancelUrl + "?orderId=" + paymentRequest.getOrderId() + "\"\n" +
+                    "  }\n" +
+                    "}";
 
-            // 3. Capture đơn hàng
-            return capturePayPalOrder(orderId, accessToken);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/v2/checkout/orders"))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 201) {
+                throw new RuntimeException("Tạo đơn hàng PayPal thất bại: " + response.body());
+            }
+
+            // 3. Trích xuất URL để redirect user (rel="approve")
+            JsonNode json = objectMapper.readTree(response.body());
+            JsonNode links = json.get("links");
+
+            for (JsonNode link : links) {
+                if ("approve".equals(link.get("rel").asText())) {
+                    return link.get("href").asText();
+                }
+            }
+
+            throw new RuntimeException("Không tìm thấy URL approve từ PayPal.");
 
         } catch (Exception e) {
-            log.severe("Lỗi khi xử lý thanh toán PayPal: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Lỗi khi tạo URL thanh toán PayPal", e);
         }
     }
 
@@ -67,60 +114,5 @@ public class PayPalPaymentGateway implements PaymentGateway {
 
         JsonNode json = objectMapper.readTree(response.body());
         return json.get("access_token").asText();
-    }
-
-    private String createPayPalOrder(InternalPaymentRequestDTO dto, String accessToken) throws IOException, InterruptedException {
-        String requestBody = "{\n" +
-                "  \"intent\": \"CAPTURE\",\n" +
-                "  \"purchase_units\": [\n" +
-                "    {\n" +
-                "      \"amount\": {\n" +
-                "        \"currency_code\": \"USD\",\n" +
-                "        \"value\": \"" + dto.getAmount() + "\"\n" +
-                "      }\n" +
-                "    }\n" +
-                "  ]\n" +
-                "}";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/v2/checkout/orders"))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 201) {
-            throw new RuntimeException("Tạo đơn hàng PayPal thất bại: " + response.body());
-        }
-
-        JsonNode json = objectMapper.readTree(response.body());
-        return json.get("id").asText();
-    }
-
-    private boolean capturePayPalOrder(String orderId, String accessToken) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/v2/checkout/orders/" + orderId + "/capture"))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        log.info("Capture PayPal Order Response: " + response.body());
-
-        if (response.statusCode() != 201) {
-            log.warning("Capture thất bại với mã: " + response.statusCode());
-            return false;
-        }
-
-        JsonNode json = objectMapper.readTree(response.body());
-        return json.get("status").asText().equals("COMPLETED");
-    }
-
-    @Override
-    public String generatePaymentUrl(InternalPaymentRequestDTO paymentRequest) {
-        return baseUrl + "/checkout?amount=" + paymentRequest.getAmount() + "&orderId=" + paymentRequest.getOrderId();
     }
 }

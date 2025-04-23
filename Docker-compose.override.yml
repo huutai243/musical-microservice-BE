@@ -1,6 +1,7 @@
-#version: "3.8"
-#
-#services:
+version: "3.8"
+
+services:
+#  # Disable Elasticsearch
 #  elasticsearch:
 #    image: alpine
 #    container_name: dummy-elasticsearch
@@ -11,10 +12,35 @@
 #        limits:
 #          cpus: "0"
 #          memory: "0M"
-#
-#  kibana:
+
+  # Disable Kibana
+  kibana:
+    image: alpine
+    container_name: dummy-kibana
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"
+
+  # Disable User Service
+  user-service:
+    image: alpine
+    container_name: dummy-user-service
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"
+
+#  # Disable Review Service
+#  review-service:
 #    image: alpine
-#    container_name: dummy-kibana
+#    container_name: dummy-review-service
 #    command: ["sleep", "infinity"]
 #    ports: []
 #    deploy:
@@ -22,14 +48,51 @@
 #        limits:
 #          cpus: "0"
 #          memory: "0M"
-#
-#  user-service:
-#    image: alpine
-#    container_name: dummy-user-service
-#    command: ["sleep", "infinity"]
-#    ports: []
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: "0"
-#          memory: "0M"
+
+  # Disable Logstash
+  logstash:
+    image: alpine
+    container_name: dummy-logstash
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"
+
+  # Disable Prometheus
+  prometheus:
+    image: alpine
+    container_name: dummy-prometheus
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"
+
+  # Disable Grafana
+  grafana:
+    image: alpine
+    container_name: dummy-grafana
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"
+
+  # Disable Tempo
+  tempo:
+    image: alpine
+    container_name: dummy-tempo
+    command: ["sleep", "infinity"]
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0"
+          memory: "0M"

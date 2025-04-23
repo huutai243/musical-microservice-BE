@@ -26,8 +26,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/payments/process").hasAnyRole("USER", "ADMIN") // Chỉ User hoặc Admin mới có thể thanh toán
-                        .requestMatchers("/api/payments/**").hasRole("ADMIN") // Chỉ Admin có thể quản lý thanh toán
+                        .requestMatchers("/api/payment/webhook").permitAll()
+                        .requestMatchers("/api/payments/process").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/payments/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

@@ -26,6 +26,13 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.processPayment(paymentRequest));
     }
 
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PostMapping("/initiate")
+    public ResponseEntity<String> initiatePayment(@RequestBody @Valid PaymentRequestDTO request) {
+        String paymentUrl = paymentService.initiatePayment(request);
+        return ResponseEntity.ok(paymentUrl); // Trả URL để frontend redirect
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{paymentId}/refund")
     public ResponseEntity<String> processRefund(@PathVariable Long paymentId) {

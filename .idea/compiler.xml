@@ -9,7 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="EurokaServer" />
       </profile>
-      <profile name="Annotation profile for AuthService" enabled="true">
+      <profile name="Annotation profile for ReviewService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
