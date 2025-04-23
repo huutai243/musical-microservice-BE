@@ -80,7 +80,6 @@ public class AuthServiceImpl implements AuthService {
         return new JwtResponse(accessToken, refreshToken);
     }
 
-
     /**
      * Đăng xuất - Xóa Refresh Token
      */
@@ -89,7 +88,6 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.findByToken(refreshToken)
                 .ifPresent(refreshTokenRepository::delete);
     }
-
 
     /**
      * 🛠 **Xử lý đăng ký User mới**
@@ -151,6 +149,43 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
+     * 🛠 **Tạo tài khoản mới bởi Admin (không cần xác nhận email)**
+     */
+    @Override
+    public UserDto createUserByAdmin(CreateUserByAdminRequest request) {
+        // Kiểm tra xem email hoặc username đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email đã tồn tại.");
+        }
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Tên người dùng đã tồn tại.");
+        }
+
+        // Lấy vai trò từ request
+        String roleName = request.getRole().toUpperCase();
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new RuntimeException("Vai trò không tồn tại: " + roleName));
+
+        // Tạo User mới với email đã xác nhận
+        User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .emailVerified(true) // Đặt emailVerified là true
+                .provider("local")
+                .roles(Collections.singletonList(role))
+                .build();
+
+        userRepository.save(user);
+
+        // Gửi thông tin sang user-service để lưu vào user_db
+        UserRequest userRequest = new UserRequest(user.getId(), user.getUsername(), user.getEmail());
+        userServiceClient.createUser(userRequest);
+
+        return new UserDto(user.getUsername(), user.getEmail(), true);
+    }
+
+    /**
      * 🛠 **Quên mật khẩu**
      */
     @Override
@@ -198,7 +233,6 @@ public class AuthServiceImpl implements AuthService {
         return new JwtResponse(newAccessToken, newRefreshToken);
     }
 
-
     /**
      * 🛠 **Gửi email xác thực tài khoản**
      */
@@ -230,5 +264,4 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
         return true;
     }
-
 }

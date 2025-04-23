@@ -160,5 +160,17 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+    /**
+     * Admin tạo tài khoản mới (không cần xác nhận email)
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/create-user")
+    public ResponseEntity<Map<String, Object>> createUserByAdmin(@RequestBody CreateUserByAdminRequest request) {
+        UserDto userDto = authService.createUserByAdmin(request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Tài khoản đã được tạo thành công.");
+        response.put("user", userDto);
+        return ResponseEntity.ok(response);
+    }
 
 }
