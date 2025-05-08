@@ -196,6 +196,43 @@ public class PaymentServiceImpl implements PaymentService {
         log.info(" Đã hoàn tiền thành công cho OrderId={}, lý do: {}", orderId, reason);
     }
 
+//    @Override
+//    @Transactional
+//    public String initiatePayment(PaymentRequestDTO paymentRequest) {
+//        OrderResponseDTO order = orderClient.getOrderById(paymentRequest.getOrderId());
+//
+//        if (order.getStatus() != OrderStatus.PENDING_PAYMENT &&
+//                order.getStatus() != OrderStatus.PAYMENT_FAILED) {
+//            throw new IllegalStateException("Đơn hàng không hợp lệ để thanh toán.");
+//        }
+//
+//        double amount = order.getTotalPrice();
+//
+//        // Lưu trạng thái PENDING vào DB
+//        Payment payment = Payment.builder()
+//                .orderId(order.getOrderId())
+//                .userId(order.getUserId())
+//                .amount(amount)
+//                .paymentMethod(paymentRequest.getPaymentMethod())
+//                .status(PaymentStatus.PENDING)
+//                .createdAt(LocalDateTime.now())
+//                .build();
+//        paymentRepository.save(payment);
+//
+//        //URL redirect thanh toán
+//        PaymentGateway gateway = switch (paymentRequest.getPaymentMethod().toUpperCase()) {
+//            case "STRIPE" -> stripePaymentGateway;
+//            case "PAYPAL" -> paypalPaymentGateway;
+//            default ->
+//                    throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ: " + paymentRequest.getPaymentMethod());
+//        };
+//
+//        return gateway.generatePaymentUrl(
+//                new InternalPaymentRequestDTO(order.getOrderId(), amount, paymentRequest.getPaymentMethod(), order.getUserId())
+//        );
+//
+//    }
+
     @Override
     @Transactional
     public String initiatePayment(PaymentRequestDTO paymentRequest) {
@@ -207,31 +244,38 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         double amount = order.getTotalPrice();
+        Optional<Payment> existingPaymentOptional = paymentRepository.findByOrderId(order.getOrderId());
 
-        // Lưu trạng thái PENDING vào DB
-        Payment payment = Payment.builder()
-                .orderId(order.getOrderId())
-                .userId(order.getUserId())
-                .amount(amount)
-                .paymentMethod(paymentRequest.getPaymentMethod())
-                .status(PaymentStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
+        Payment payment;
+        if (existingPaymentOptional.isPresent()) {
+            payment = existingPaymentOptional.get();
+            payment.setStatus(PaymentStatus.PENDING);
+            payment.setPaymentMethod(paymentRequest.getPaymentMethod());
+            payment.setCreatedAt(LocalDateTime.now());
+        } else {
+            payment = Payment.builder()
+                    .orderId(order.getOrderId())
+                    .userId(order.getUserId())
+                    .amount(amount)
+                    .paymentMethod(paymentRequest.getPaymentMethod())
+                    .status(PaymentStatus.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+        }
+
         paymentRepository.save(payment);
 
-        //URL redirect thanh toán
         PaymentGateway gateway = switch (paymentRequest.getPaymentMethod().toUpperCase()) {
             case "STRIPE" -> stripePaymentGateway;
             case "PAYPAL" -> paypalPaymentGateway;
-            default ->
-                    throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ: " + paymentRequest.getPaymentMethod());
+            default -> throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ: " + paymentRequest.getPaymentMethod());
         };
 
         return gateway.generatePaymentUrl(
                 new InternalPaymentRequestDTO(order.getOrderId(), amount, paymentRequest.getPaymentMethod(), order.getUserId())
         );
-
     }
+
 
     @Override
     @Transactional

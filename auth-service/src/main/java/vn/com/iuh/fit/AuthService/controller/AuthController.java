@@ -161,4 +161,16 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/create-user")
+    public ResponseEntity<?> createUserByAdmin(@RequestBody CreateUserRequest request) {
+        try {
+            UserDto createdUser = authService.createUserByAdmin(request);
+            return ResponseEntity.ok(createdUser);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi hệ thống: " + ex.getMessage());
+        }
+    }
 }

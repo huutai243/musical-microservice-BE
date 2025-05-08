@@ -231,4 +231,39 @@ public class AuthServiceImpl implements AuthService {
         return true;
     }
 
+    /**
+     * 🛠 **Admin tạo tài khoản cho user**
+     */
+    @Override
+    public UserDto createUserByAdmin(CreateUserRequest request) {
+        String roleInput = request.getRole().toUpperCase();
+
+        if (!roleInput.equals("ADMIN") && !roleInput.equals("USER")) {
+            throw new IllegalArgumentException("Role không hợp lệ. Chỉ chấp nhận: ADMIN hoặc USER");
+        }
+
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email đã tồn tại.");
+        }
+
+        Role role = roleRepository.findByName(roleInput)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleInput));
+
+        User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .emailVerified(true)
+                .provider("local")
+                .roles(Collections.singletonList(role))
+                .build();
+
+        userRepository.save(user);
+
+        userServiceClient.createUser(new UserRequest(user.getId(), user.getUsername(), user.getEmail()));
+
+        return new UserDto(user.getUsername(), user.getEmail(), true);
+    }
+
+
 }

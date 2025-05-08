@@ -452,12 +452,29 @@ services:  # 1. Eureka Service
     networks:
       - microservice-net
 
+#  ai-service:
+#    container_name: ai-service
+#    build:
+#      context: ./ai-service
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8000:8000"
+#      - "50051:50051"
+#    depends_on:
+#      - product-service
+#    volumes:
+#      - huggingface_cache:/app/.cache
+#    networks:
+#      - microservice-net
+#    restart: on-failure
+
 volumes:
   redis-data:
     driver: local
   mysql_data:
   minio_data:
   mongo_data:
+  huggingface_cache:
 
 networks:
   microservice-net:

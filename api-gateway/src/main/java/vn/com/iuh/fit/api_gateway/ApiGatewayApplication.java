@@ -34,6 +34,7 @@ public class ApiGatewayApplication {
                         .uri("lb://NOTIFICATION-SERVICE"))
                 .route("inventory-service", r -> r.path("/api/inventory/**")
                         .uri("lb://INVENTORY-SERVICE"))
+                .route("ai-service", r -> r.path("/api/ai/**").uri("http://ai-service:8000"))
                 .build();
     }
 }

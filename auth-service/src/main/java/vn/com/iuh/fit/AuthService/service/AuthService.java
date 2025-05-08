@@ -9,4 +9,6 @@ public interface AuthService {
     JwtResponse refreshToken(String refreshToken);
     Boolean verifyEmail(String token);
     void logout(String refreshToken);
+    UserDto createUserByAdmin(CreateUserRequest request);
+
 }
