@@ -451,6 +451,19 @@ services:  # 1. Eureka Service
       - elasticsearch
     networks:
       - microservice-net
+  # 25.Jenkins
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    user: root
+    ports:
+      - "8099:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - microservice-net
 
 #  ai-service:
 #    container_name: ai-service
@@ -475,6 +488,7 @@ volumes:
   minio_data:
   mongo_data:
   huggingface_cache:
+  jenkins_home:
 
 networks:
   microservice-net:
