@@ -158,14 +158,14 @@ services:
           memory: "0M"
 
   # Disable ai-service
-  ai-service:
-    image: alpine
-    container_name: dummy-ai-service
-    command: ["sleep", "infinity"]
-    ports: []
-    volumes: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
+#  ai-service:
+#    image: alpine
+#    container_name: dummy-ai-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    volumes: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"

@@ -1,7 +1,7 @@
 import asyncio
 from threading import Thread
 import uvicorn
-from fastapi_app import app as fastapi_app  # Chỗ bạn define FastAPI
+from http_server import app as fastapi_app
 from rag_engine import RAGEngine
 from grpc_server import serve_grpc  # Đây là hàm bạn đã viết
 from cron_job import cron_update  # Đây chính là hàm bạn viết

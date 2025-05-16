@@ -451,9 +451,11 @@ services:  # 1. Eureka Service
       - elasticsearch
     networks:
       - microservice-net
-  # 25.Jenkins
+  # 25. Jenkins
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
     container_name: jenkins
     user: root
     ports:
@@ -461,25 +463,25 @@ services:  # 1. Eureka Service
       - "50000:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock  #
     networks:
       - microservice-net
 
-#  ai-service:
-#    container_name: ai-service
-#    build:
-#      context: ./ai-service
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8000:8000"
-#      - "50051:50051"
-#    depends_on:
-#      - product-service
-#    volumes:
-#      - huggingface_cache:/app/.cache
-#    networks:
-#      - microservice-net
-#    restart: on-failure
+  ai-service:
+    container_name: ai-service
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    depends_on:
+      - product-service
+    volumes:
+      - huggingface_cache:/app/.cache
+    networks:
+      - microservice-net
+    restart: on-failure
 
 volumes:
   redis-data:

@@ -41,6 +41,7 @@ pipeline {
                     services.each { service ->
                         echo " Building ${service}..."
                         dir("${service}") {
+                            sh 'chmod +x mvnw'
                             sh './mvnw clean package -DskipTests'
                         }
                     }
@@ -54,7 +55,7 @@ pipeline {
                     services.each { service ->
                         def imageName = "${DOCKER_REGISTRY}/${service}:latest"
                         echo " Building Docker image for ${service} → ${imageName}"
-                        sh "docker build -t ${imageName} ./${service}"
+                        sh "docer build -t ${imageName} ./${service}"
                     }
                 }
             }
