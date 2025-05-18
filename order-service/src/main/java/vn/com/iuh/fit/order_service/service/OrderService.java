@@ -22,5 +22,5 @@ public interface OrderService {
     Order getOrderById(Long orderId);
     void removeItemFromOrder(Long orderId, Long itemId, String userId);
     OrderResponseDTO getOrderDTOById(Long orderId);
-
+    List<OrderResponseDTO> getAllOrdersByUserId(String userId);
 }

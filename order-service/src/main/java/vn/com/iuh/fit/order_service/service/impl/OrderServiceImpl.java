@@ -543,5 +543,13 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException(" Không tìm thấy đơn hàng với ID: " + orderId));
     }
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponseDTO> getAllOrdersByUserId(String userId) {
+        return orderRepository.findByUserId(userId).stream()
+                .map(orderMapper::toDTO)
+                .toList();
+    }
+
 
 }
