@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import vn.com.iuh.fit.order_service.config.JwtAuthFilter;
 import vn.com.iuh.fit.order_service.dto.CheckoutEventDTO;
@@ -58,7 +59,8 @@ public class OrderController {
     }
     @GetMapping("/user/get-all")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<OrderResponseDTO>> getOrdersByUserId(@RequestParam String userId) {
+    public ResponseEntity<List<OrderResponseDTO>> getOrdersByCurrentUser() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(orderService.getAllOrdersByUserId(userId));
     }
 
