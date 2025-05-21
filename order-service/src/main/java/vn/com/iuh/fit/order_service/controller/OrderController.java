@@ -58,11 +58,13 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
     @GetMapping("/user/get-all")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<OrderResponseDTO>> getOrdersByCurrentUser() {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<List<OrderResponseDTO>> getOrdersByCurrentUser(
+            @RequestHeader("Authorization") String authHeader) {
+        String userId = JwtAuthFilter.extractUserId(authHeader, jwtSecret);
         return ResponseEntity.ok(orderService.getAllOrdersByUserId(userId));
     }
+
 
     /**
      * API lấy đơn hàng theo ID

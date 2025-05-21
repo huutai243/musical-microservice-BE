@@ -2,40 +2,40 @@ version: "3.8"
 
 services:
   # Disable Elasticsearch
-  elasticsearch:
-    image: alpine
-    container_name: dummy-elasticsearch
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
-
-  # Disable Kibana
-  kibana:
-    image: alpine
-    container_name: dummy-kibana
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
+#  elasticsearch:
+#    image: alpine
+#    container_name: dummy-elasticsearch
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
+#
+#  # Disable Kibana
+#  kibana:
+#    image: alpine
+#    container_name: dummy-kibana
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
 
   # Disable User Service
-  user-service:
-    image: alpine
-    container_name: dummy-user-service
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
+#  user-service:
+#    image: alpine
+#    container_name: dummy-user-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
 
   # Disable Review Service
   review-service:
@@ -109,55 +109,55 @@ services:
           cpus: "0"
           memory: "0M"
 
-  # Disable Order Service
-  order-service:
-    image: alpine
-    container_name: dummy-order-service
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
-
-  # Disable Payment Service
-  payment-service:
-    image: alpine
-    container_name: dummy-payment-service
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
+#  # Disable Order Service
+#  order-service:
+#    image: alpine
+#    container_name: dummy-order-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
+#
+#  # Disable Payment Service
+#  payment-service:
+#    image: alpine
+#    container_name: dummy-payment-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
 
   # Disable Cart Service
-  cart-service:
-    image: alpine
-    container_name: dummy-cart-service
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
+#  cart-service:
+#    image: alpine
+#    container_name: dummy-cart-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
+#
+#  # Disable Inventory Service
+#  inventory-service:
+#    image: alpine
+#    container_name: dummy-inventory-service
+#    command: ["sleep", "infinity"]
+#    ports: []
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: "0"
+#          memory: "0M"
 
-  # Disable Inventory Service
-  inventory-service:
-    image: alpine
-    container_name: dummy-inventory-service
-    command: ["sleep", "infinity"]
-    ports: []
-    deploy:
-      resources:
-        limits:
-          cpus: "0"
-          memory: "0M"
-
-  # Disable ai-service
+#   Disable ai-service
 #  ai-service:
 #    image: alpine
 #    container_name: dummy-ai-service

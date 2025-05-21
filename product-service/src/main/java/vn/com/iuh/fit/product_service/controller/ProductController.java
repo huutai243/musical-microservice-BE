@@ -1,6 +1,7 @@
 package vn.com.iuh.fit.product_service.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,7 @@ public class ProductController {
      * API lấy danh sách tất cả sản phẩm
      * @return List<ProductResponse>
      */
+    @RateLimiter(name = "productLimiter", fallbackMethod = "rateLimitFallback")
     @GetMapping("/get-all")
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
@@ -42,6 +44,7 @@ public class ProductController {
      * @param id - ID sản phẩm
      * @return ProductResponse
      */
+    @RateLimiter(name = "productLimiter", fallbackMethod = "rateLimitFallback")
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
@@ -101,6 +104,7 @@ public class ProductController {
      * @param keyword - Từ khóa tìm kiếm
      * @return List<ProductResponse>
      */
+    @RateLimiter(name = "productLimiter", fallbackMethod = "rateLimitFallback")
     @GetMapping("/search")
     public ResponseEntity<List<ProductResponse>> searchProducts(
             @RequestParam(required = false, name = "keyword") String keyword,
@@ -116,6 +120,7 @@ public class ProductController {
      * @param maxPrice - Giá tối đa
      * @return List<ProductResponse>
      */
+    @RateLimiter(name = "productLimiter", fallbackMethod = "rateLimitFallback")
     @GetMapping("/filter")
     public ResponseEntity<List<ProductResponse>> filterProductsByPrice(
             @RequestParam double minPrice,

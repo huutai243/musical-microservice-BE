@@ -3,9 +3,14 @@ package vn.com.iuh.fit.cart_service.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import vn.com.iuh.fit.cart_service.config.FeignRetryConfig;
 import vn.com.iuh.fit.cart_service.dto.ProductDTO;
 
-@FeignClient(name = "product-service", url = "http://api-gateway:9000")
+@FeignClient(
+        name = "product-service",
+        url = "http://api-gateway:9000",
+        configuration = FeignRetryConfig.class
+)
 public interface ProductClient {
 
     @GetMapping("/api/products/{id}")

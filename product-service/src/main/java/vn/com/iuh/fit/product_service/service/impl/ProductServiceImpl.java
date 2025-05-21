@@ -1,6 +1,8 @@
 package vn.com.iuh.fit.product_service.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import vn.com.iuh.fit.product_service.dto.ProductRequest;
@@ -16,8 +18,10 @@ import vn.com.iuh.fit.product_service.repository.ProductImageRepository;
 import vn.com.iuh.fit.product_service.service.FileStorageService;
 import vn.com.iuh.fit.product_service.service.ProductService;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +30,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ProductServiceImpl implements ProductService {
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private ProductRepository productRepository;
@@ -94,6 +104,12 @@ public class ProductServiceImpl implements ProductService {
 
         productElasticsearchRepository.save(productDocument);
 
+        Set<String> keys = redisTemplate.keys("product:page:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+        warmupProductPageCache();
+
         return convertToResponse(product);
     }
 
@@ -134,6 +150,12 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
+        Set<String> keys = redisTemplate.keys("product:page:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+        warmupProductPageCache();
+
         return convertToResponse(product);
     }
 
@@ -153,6 +175,12 @@ public class ProductServiceImpl implements ProductService {
 
         // Xóa dữ liệu sản phẩm khỏi Elasticsearch
         productElasticsearchRepository.deleteById(id);
+
+        Set<String> keys = redisTemplate.keys("product:page:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+        warmupProductPageCache();
 
         // Xóa sản phẩm khỏi MySQL
         productRepository.deleteById(id);
@@ -182,8 +210,8 @@ public class ProductServiceImpl implements ProductService {
                 .name(productDocument.getName())
                 .description(productDocument.getDescription())
                 .price(productDocument.getPrice())
-                .categoryId(productDocument.getCategoryId()) // ✅ Lấy categoryId thay vì categoryName
-                .imageUrls(productDocument.getImageUrls()) // ✅ Lấy danh sách ảnh từ Elasticsearch
+                .categoryId(productDocument.getCategoryId())
+                .imageUrls(productDocument.getImageUrls())
                 .build();
     }
 
@@ -197,23 +225,58 @@ public class ProductServiceImpl implements ProductService {
                         .name(doc.getName())
                         .description(doc.getDescription())
                         .price(doc.getPrice())
-                        .categoryId(doc.getCategoryId()) // ✅ Thêm categoryId
-                        .imageUrls(doc.getImageUrls())   // ✅ Thêm danh sách imageUrls
+                        .categoryId(doc.getCategoryId())
+                        .imageUrls(doc.getImageUrls())
                         .build())
                 .collect(Collectors.toList());
     }
 
 
     // 6 PHÂN TRANG & SẮP XẾP
+//    @Override
+//    public List<ProductResponse> getPagedProducts(int page, int size) {
+//        return productRepository.findAll()
+//                .stream()
+//                .skip((long) (page - 1) * size)
+//                .limit(size)
+//                .map(this::convertToResponse)
+//                .collect(Collectors.toList());
+//    }
+
     @Override
     public List<ProductResponse> getPagedProducts(int page, int size) {
-        return productRepository.findAll()
+        String key = String.format("product:page:%d:size:%d", page, size);
+        String cachedJson = redisTemplate.opsForValue().get(key);
+
+        if (cachedJson != null) {
+            try {
+                return objectMapper.readValue(cachedJson,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, ProductResponse.class));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        List<ProductResponse> result = productRepository.findAll()
                 .stream()
                 .skip((long) (page - 1) * size)
                 .limit(size)
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+
+        try {
+            redisTemplate.opsForValue().set(
+                    key,
+                    objectMapper.writeValueAsString(result),
+                    Duration.ofMinutes(15)
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
     }
+
 
     @Override
     public List<ProductResponse> getLatestProducts(int limit) {
@@ -268,4 +331,36 @@ public class ProductServiceImpl implements ProductService {
                 .build();
     }
 
+    private void warmupProductPageCache() {
+        try {
+            List<ProductResponse> top10 = productRepository.findAll()
+                    .stream()
+                    .limit(10)
+                    .map(this::convertToResponse)
+                    .toList();
+
+            redisTemplate.opsForValue().set(
+                    "product:page:1:size:10",
+                    objectMapper.writeValueAsString(top10),
+                    Duration.ofMinutes(15)
+            );
+
+            List<ProductResponse> top5 = productRepository.findAll()
+                    .stream()
+                    .limit(5)
+                    .map(this::convertToResponse)
+                    .toList();
+
+            redisTemplate.opsForValue().set(
+                    "product:page:1:size:5",
+                    objectMapper.writeValueAsString(top5),
+                    Duration.ofMinutes(15)
+            );
+
+            System.out.println(" Warm-up cache trang chủ thành công.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(" Warm-up cache thất bại.");
+        }
+    }
 }

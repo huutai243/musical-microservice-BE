@@ -1,5 +1,6 @@
 package vn.com.iuh.fit.AuthService.controller;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class AuthController {
     /**
      * Đăng ký tài khoản mới
      */
+    @RateLimiter(name = "authRateLimiter", fallbackMethod = "handleRateLimit")
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         authService.register(request);
@@ -42,9 +44,19 @@ public class AuthController {
     /**
      * Đăng nhập và nhận JWT
      */
+    @RateLimiter(name = "authRateLimiter", fallbackMethod = "handleRateLimit")
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    public ResponseEntity<?> handleRateLimit(LoginRequest request, Exception ex) {
+        return ResponseEntity
+                .status(429)
+                .body(Map.of(
+                        "error", "Too many login attempts. Please try again later.",
+                        "message", "Bạn đã đăng nhập quá nhiều lần. Vui lòng thử lại sau 1 phút!"
+                ));
     }
 
     /**
@@ -68,6 +80,7 @@ public class AuthController {
     /**
      * Quên mật khẩu - Gửi email để đặt lại mật khẩu
      */
+    @RateLimiter(name = "authRateLimiter", fallbackMethod = "handleRateLimit")
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
