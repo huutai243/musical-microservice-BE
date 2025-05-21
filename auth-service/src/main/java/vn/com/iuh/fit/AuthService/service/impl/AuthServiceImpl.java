@@ -80,7 +80,6 @@ public class AuthServiceImpl implements AuthService {
         return new JwtResponse(accessToken, refreshToken);
     }
 
-
     /**
      * Đăng xuất - Xóa Refresh Token
      */
@@ -148,6 +147,43 @@ public class AuthServiceImpl implements AuthService {
         sendVerificationEmail(user);
 
         return new UserDto(user.getUsername(), user.getEmail(), false);
+    }
+
+    /**
+     * 🛠 **Tạo tài khoản mới bởi Admin (không cần xác nhận email)**
+     */
+    @Override
+    public UserDto createUserByAdmin(CreateUserByAdminRequest request) {
+        // Kiểm tra xem email hoặc username đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email đã tồn tại.");
+        }
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Tên người dùng đã tồn tại.");
+        }
+
+        // Lấy vai trò từ request
+        String roleName = request.getRole().toUpperCase();
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new RuntimeException("Vai trò không tồn tại: " + roleName));
+
+        // Tạo User mới với email đã xác nhận
+        User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .emailVerified(true) // Đặt emailVerified là true
+                .provider("local")
+                .roles(Collections.singletonList(role))
+                .build();
+
+        userRepository.save(user);
+
+        // Gửi thông tin sang user-service để lưu vào user_db
+        UserRequest userRequest = new UserRequest(user.getId(), user.getUsername(), user.getEmail());
+        userServiceClient.createUser(userRequest);
+
+        return new UserDto(user.getUsername(), user.getEmail(), true);
     }
 
     /**
@@ -230,40 +266,5 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
         return true;
     }
-
-    /**
-     * 🛠 **Admin tạo tài khoản cho user**
-     */
-    @Override
-    public UserDto createUserByAdmin(CreateUserRequest request) {
-        String roleInput = request.getRole().toUpperCase();
-
-        if (!roleInput.equals("ADMIN") && !roleInput.equals("USER")) {
-            throw new IllegalArgumentException("Role không hợp lệ. Chỉ chấp nhận: ADMIN hoặc USER");
-        }
-
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email đã tồn tại.");
-        }
-
-        Role role = roleRepository.findByName(roleInput)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleInput));
-
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .emailVerified(true)
-                .provider("local")
-                .roles(Collections.singletonList(role))
-                .build();
-
-        userRepository.save(user);
-
-        userServiceClient.createUser(new UserRequest(user.getId(), user.getUsername(), user.getEmail()));
-
-        return new UserDto(user.getUsername(), user.getEmail(), true);
-    }
-
 
 }

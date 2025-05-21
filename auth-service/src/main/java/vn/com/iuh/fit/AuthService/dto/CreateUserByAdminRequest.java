@@ -4,12 +4,13 @@ import lombok.*;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class RegisterRequest {
+@AllArgsConstructor
+@Builder
+public class CreateUserByAdminRequest {
     private Long id;
     private String username;
     private String email;
     private String password;
+    private String role;
 }
-
