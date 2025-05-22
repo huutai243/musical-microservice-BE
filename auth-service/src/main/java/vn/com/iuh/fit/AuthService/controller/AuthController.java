@@ -32,12 +32,25 @@ public class AuthController {
     /**
      * Đăng ký tài khoản mới
      */
+//    @PostMapping("/register")
+//    public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
+//        authService.register(request);
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("message", "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.");
+//        return ResponseEntity.ok(response);
+//    }
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
-        authService.register(request);
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.");
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        try {
+            authService.register(request);   // bên trong có Feign call
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đăng ký thành công. Vui lòng kiểm tra email."
+            ));
+        } catch (feign.RetryableException ex) {
+            // Feign đã thử 3 lần mà vẫn lỗi
+            return ResponseEntity.status(503).body(
+                    "Tạm thời chưa thể kết nối user-service, vui lòng thử lại sau.");
+        }
     }
 
     /**
