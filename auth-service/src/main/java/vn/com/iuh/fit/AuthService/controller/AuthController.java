@@ -41,10 +41,19 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    public ResponseEntity<?> handleRateLimit(RegisterRequest request, Throwable ex) {
+        return ResponseEntity
+                .status(429)
+                .body(Map.of(
+                        "error", "Too many register attempts. Please try again later.",
+                        "message", "Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 1 phút!"
+                ));
+    }
+
     /**
      * Đăng nhập và nhận JWT
      */
-    @RateLimiter(name = "authRateLimiter", fallbackMethod = "handleRateLimit")
+//    @RateLimiter(name = "authRateLimiter", fallbackMethod = "handleRateLimit")
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
@@ -80,7 +89,6 @@ public class AuthController {
     /**
      * Quên mật khẩu - Gửi email để đặt lại mật khẩu
      */
-    @RateLimiter(name = "authRateLimiter", fallbackMethod = "handleRateLimit")
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
@@ -186,16 +194,16 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/admin/create-user")
-    public ResponseEntity<?> createUserByAdmin(@RequestBody CreateUserRequest request) {
-        try {
-            UserDto createdUser = authService.createUserByAdmin(request);
-            return ResponseEntity.ok(createdUser);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi hệ thống: " + ex.getMessage());
-        }
-    }
+//    @PreAuthorize("hasRole('ADMIN')")
+//    @PostMapping("/admin/create-user")
+//    public ResponseEntity<?> createUserByAdmin(@RequestBody CreateUserRequest request) {
+//        try {
+//            UserDto createdUser = authService.createUserByAdmin(request);
+//            return ResponseEntity.ok(createdUser);
+//        } catch (IllegalArgumentException ex) {
+//            return ResponseEntity.badRequest().body(ex.getMessage());
+//        } catch (Exception ex) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi hệ thống: " + ex.getMessage());
+//        }
+//    }
 }
